@@ -16,8 +16,8 @@
  * updates after the initial scan completes.
  */
 
-import * as path from 'node:path';
 import { realpathSync } from 'node:fs';
+import * as path from 'node:path';
 import { WRITE_TOOL_NAMES } from '../config/constants';
 import {
 	buildWorkspaceGraphAsync,
@@ -183,16 +183,32 @@ export function createRepoGraphBuilderHook(
 			let realFilePath: string;
 			try {
 				realFilePath = realpathSync(absoluteFilePath);
-			} catch {
-				// File doesn't exist yet (e.g. new file being created) — fall
-				// back to the unresolved absolute path for the boundary check.
+			} catch (error) {
+				// Only fall back to unresolved path for ENOENT (file doesn't exist yet).
+				// Reject all other errors (EACCES, ELOOP, etc.) to prevent symlink-based
+				// workspace escape attacks.
+				if (
+					!(error instanceof Error) ||
+					(error as NodeJS.ErrnoException).code !== 'ENOENT'
+				) {
+					return; // Reject path - security boundary check failed
+				}
 				realFilePath = absoluteFilePath;
 			}
 
 			let realWorkspace: string;
 			try {
 				realWorkspace = realpathSync(workspaceRoot);
-			} catch {
+			} catch (error) {
+				// Only fall back to unresolved path for ENOENT.
+				// Reject all other errors (EACCES, ELOOP, etc.) to prevent symlink-based
+				// workspace escape attacks.
+				if (
+					!(error instanceof Error) ||
+					(error as NodeJS.ErrnoException).code !== 'ENOENT'
+				) {
+					return; // Reject path - security boundary check failed
+				}
 				realWorkspace = workspaceRoot;
 			}
 

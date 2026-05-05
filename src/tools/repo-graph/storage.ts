@@ -19,10 +19,17 @@ import {
 	isDirty,
 	setCachedGraph,
 } from './cache';
-import { createEmptyGraph, updateGraphMetadata } from './types';
 import type { RepoGraph } from './types';
-import { REPO_GRAPH_FILENAME } from './types';
-import { validateGraphEdge, validateGraphNode, validateWorkspace } from './validation';
+import {
+	createEmptyGraph,
+	REPO_GRAPH_FILENAME,
+	updateGraphMetadata,
+} from './types';
+import {
+	validateGraphEdge,
+	validateGraphNode,
+	validateWorkspace,
+} from './validation';
 
 // ============ Constants ============
 
@@ -78,7 +85,7 @@ export async function loadGraph(workspace: string): Promise<RepoGraph | null> {
 			const graphPath = getGraphPath(workspace);
 			if (existsSync(graphPath)) {
 				const stats = await fsPromises.stat(graphPath);
-			const cachedMtime = getCachedMtime(normalized);
+				const cachedMtime = getCachedMtime(normalized);
 				if (cachedMtime !== undefined && stats.mtimeMs !== cachedMtime) {
 					// File was modified externally - invalidate cache
 					clearCache(normalized);
@@ -439,5 +446,3 @@ export async function saveIfDirty(workspace: string): Promise<void> {
 		await saveGraph(workspace, graph);
 	}
 }
-
-

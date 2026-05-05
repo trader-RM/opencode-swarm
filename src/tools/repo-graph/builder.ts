@@ -17,9 +17,7 @@ import * as fsPromises from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as logger from '../../utils/logger';
-import {
-	containsControlChars,
-} from '../../utils/path-security';
+import { containsControlChars } from '../../utils/path-security';
 import { yieldToEventLoop } from '../../utils/timeout';
 import { extractPythonSymbols, extractTSSymbols } from '../symbols';
 import type {
@@ -33,7 +31,11 @@ import {
 	normalizeGraphPath,
 	updateGraphMetadata,
 } from './types';
-import { validateGraphEdge, validateGraphNode, validateWorkspace } from './validation';
+import {
+	validateGraphEdge,
+	validateGraphNode,
+	validateWorkspace,
+} from './validation';
 
 // ============ Constants ============
 

@@ -15,50 +15,46 @@
  * All existing imports of this module continue to work unchanged.
  */
 
-export type {
-BuildWorkspaceGraphOptions,
-GraphEdge,
-GraphNode,
-RepoGraph,
-} from './repo-graph/types';
-export {
-GRAPH_SCHEMA_VERSION,
-REPO_GRAPH_FILENAME,
-createEmptyGraph,
-normalizeGraphPath,
-updateGraphMetadata,
-} from './repo-graph/types';
-
-export {
-validateGraphEdge,
-validateGraphNode,
-validateWorkspace,
-} from './repo-graph/validation';
-
-export {
-clearCache,
-getCachedGraph,
-getCachedMtime,
-isDirty,
-markDirty,
-setCachedGraph,
-} from './repo-graph/cache';
-
-export {
-getGraphPath,
-loadGraph,
-loadOrCreateGraph,
-saveGraph,
-saveIfDirty,
-} from './repo-graph/storage';
-
-export {
-addEdge,
-buildWorkspaceGraph,
-buildWorkspaceGraphAsync,
-resolveModuleSpecifier,
-upsertNode,
-} from './repo-graph/builder';
 export type { ScanResult } from './repo-graph/builder';
-
+export {
+	addEdge,
+	buildWorkspaceGraph,
+	buildWorkspaceGraphAsync,
+	resolveModuleSpecifier,
+	upsertNode,
+} from './repo-graph/builder';
+export {
+	clearCache,
+	getCachedGraph,
+	getCachedMtime,
+	isDirty,
+	markDirty,
+	setCachedGraph,
+} from './repo-graph/cache';
 export { updateGraphForFiles } from './repo-graph/incremental';
+
+export {
+	getGraphPath,
+	loadGraph,
+	loadOrCreateGraph,
+	saveGraph,
+	saveIfDirty,
+} from './repo-graph/storage';
+export type {
+	BuildWorkspaceGraphOptions,
+	GraphEdge,
+	GraphNode,
+	RepoGraph,
+} from './repo-graph/types';
+export {
+	createEmptyGraph,
+	GRAPH_SCHEMA_VERSION,
+	normalizeGraphPath,
+	REPO_GRAPH_FILENAME,
+	updateGraphMetadata,
+} from './repo-graph/types';
+export {
+	validateGraphEdge,
+	validateGraphNode,
+	validateWorkspace,
+} from './repo-graph/validation';

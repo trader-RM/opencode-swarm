@@ -20,8 +20,8 @@ import {
 } from './builder';
 import { getCachedMtime } from './cache';
 import { getGraphPath, loadGraph, saveGraph } from './storage';
-import { normalizeGraphPath, updateGraphMetadata } from './types';
 import type { RepoGraph } from './types';
+import { normalizeGraphPath, updateGraphMetadata } from './types';
 
 /**
  * Incrementally update the graph for a set of changed files.

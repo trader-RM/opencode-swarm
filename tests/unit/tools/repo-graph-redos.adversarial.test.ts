@@ -93,7 +93,7 @@ describe('parseFileImports ReDoS resistance', () => {
 
 	test('null bytes in content do not hang and produce no nodes', () => {
 		// Binary content with null bytes should be skipped immediately, not scanned
-		const binaryContent = 'import { foo } from ' + '\0'.repeat(100) + '\'./bar\'';
+		const binaryContent = 'import { foo } from ' + '\0'.repeat(100) + "'./bar'";
 		const filePath = path.join(tempDir, 'binary-like.ts');
 		fsSync.writeFileSync(filePath, binaryContent, 'utf-8');
 		const start = Date.now();
