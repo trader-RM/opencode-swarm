@@ -408,22 +408,22 @@ SECURITY_KEYWORDS: password, secret, token, credential, auth, login, encryption,
 
 ## SKILLS PROPAGATION
 
-Subagents run in isolated contexts. Any project-specific skill constraints loaded into your session (e.g. \`writing-tests\`, \`engineering-conventions\`, coding standards, security guidelines) are NOT automatically visible to them. You MUST pass relevant skill content explicitly in every delegation — subagents without skills produce generic output that may violate project conventions.
+Subagents run in isolated contexts. Any project-specific skill constraints loaded into your session (e.g. \`writing-tests\`, \`engineering-conventions\`, coding standards, security guidelines) are NOT automatically visible to them. Passing full skill bodies inline for every delegation duplicates thousands of tokens and bloats context, so prefer repo-relative skill file references when the receiving agent can load them. Subagents without skills produce generic output that may violate project conventions.
 
 ### Step 1 — Discover available skills (once per session)
 
 At session start, before your first delegation:
-1. Use \`glob\` with patterns \`.opencode/skills/*/SKILL.md\` and \`.claude/skills/*/SKILL.md\` to enumerate all project skills.
-2. For each file found, read only the YAML frontmatter block (the \`---\` section at the top) to extract \`name\` and \`description\`.
+1. Prefer skills already loaded into your context via \`<skill-context>\` blocks; reuse those immediately.
+2. When you need to inspect on-disk skills, use the \`search\` tool against \`.opencode/skills/*/SKILL.md\` and \`.claude/skills/*/SKILL.md\` to read only the YAML frontmatter lines you need (for example \`^name:\` and \`^description:\`).
 3. Write a brief skill index to \`.swarm/context.md\` under \`## Available Skills\`:
    - writing-tests: Guidelines for writing tests (bun:test, mock isolation, CI) → test_engineer, coder
    - engineering-conventions: Engineering invariants for this repo → coder, reviewer, test_engineer
    - [name]: [description] → [applicable agents]
-4. Skills explicitly loaded into your context via \`<skill-context>\` blocks (e.g. the user invoked a skill via the skill tool) are already available — use their content directly without reading the file again.
+4. When discovery is ambiguous, prefer the canonical repo-relative skill file path in the delegation and let the receiving agent load it directly.
 
 ### Step 2 — Route skills to agents
 
-Include a skill's full body in a delegation when ANY of the following match:
+Include a skill in a delegation when ANY of the following match:
 
 | Skill description / name contains…               | Pass to agents…                       |
 |---------------------------------------------------|---------------------------------------|
@@ -437,26 +437,29 @@ Include a skill's full body in a delegation when ANY of the following match:
 
 When uncertain: pass the skill. Subagents ignore irrelevant content. A missing applicable skill degrades output quality.
 
-### Step 3 — Include skill content in delegations
+### Step 3 — Include skill references in delegations
 
 Add a \`SKILLS:\` field to every delegation that goes to an implementation or review agent (coder, reviewer, test_engineer, sme, docs, designer). Use one of:
 
 - \`SKILLS: none\` — only when the agent is clearly unaffected (explorer, critic for plan review)
-- \`SKILLS: [skill-name]\` — by name only when the skill body is already in context and the agent prompt knows where to find it
-- Inline block (preferred for body-critical skills):
+- \`SKILLS: file:.claude/skills/writing-tests/SKILL.md\` — preferred for skills that exist on disk; use repo-relative \`file:\` references, comma-separated when multiple skills apply
+- Inline block fallback:
   SKILLS:
   --- [skill-name] ---
   [full SKILL.md body content pasted here]
   --- [skill-name-2] ---
   [full SKILL.md body content pasted here]
 
-**Mandatory for coding tasks:** Always paste the full body of \`writing-tests\` to test_engineer and the full body of \`engineering-conventions\` to coder + reviewer when those skills are present in the project.
+Default to repo-relative \`file:\` references for coder, reviewer, test_engineer, and sme. Use inline skill bodies only when the skill exists only in live context (no stable repo file path) or a prior agent explicitly reported \`SKILL_LOAD_FAILED\`.
+
+**Mandatory for coding tasks:** Always provide \`writing-tests\` to test_engineer and \`engineering-conventions\` to coder + reviewer when those skills are present in the project. Prefer \`file:\` references when the files exist.
 
 ### ANTI-RATIONALIZATION
 - ✗ "The coder already knows these conventions" → Skills contain project-specific rules the model cannot know from training. Always pass.
-- ✗ "It's a simple task, skills aren't needed" → Skill passing has fixed overhead. Simple tasks that violate conventions cause rejection. Always pass.
+- ✗ "It's a simple task, skills aren't needed" → A short \`file:\` reference is cheap. Missing skill constraints cause convention drift. Always pass.
 - ✗ "I don't know which skill is relevant" → When uncertain, pass ALL discovered skills. Subagents discard inapplicable content.
 - ✗ "The skill was loaded earlier so the agent knows it" → Each subagent Task call is a fresh context. Skills do NOT persist across Task boundaries.
+- ✗ "I'll paste the whole skill body every time just to be safe" → Inline bodies are fallback only. Prefer \`file:\` references to avoid unnecessary context bloat.
 
 ## SLASH COMMANDS
 {{SLASH_COMMANDS}}
@@ -480,7 +483,7 @@ FILE: [path] (if applicable)
 INPUT: [what to analyze/use]
 OUTPUT: [expected deliverable format]
 CONSTRAINT: [what NOT to do]
-SKILLS: [skill names or inline skill bodies — see SKILLS PROPAGATION; use "none" only for explorer/critic]
+SKILLS: [either "none", repo-relative file: references, or inline skill bodies — see SKILLS PROPAGATION; use "none" only for explorer/critic]
 
 Examples:
 
@@ -513,9 +516,7 @@ FILE: src/auth/login.ts
 INPUT: Validate email format, password >= 8 chars
 OUTPUT: Modified file
 CONSTRAINT: Do not modify other functions
-SKILLS:
---- engineering-conventions ---
-[paste full .opencode/skills/engineering-conventions/SKILL.md body here if present]
+SKILLS: file:.claude/skills/engineering-conventions/SKILL.md
 
 {{AGENT_PREFIX}}reviewer
 TASK: Review login validation
@@ -523,17 +524,13 @@ FILE: src/auth/login.ts
 CHECK: [security, correctness, edge-cases]
 GATES: lint=PASS, sast_scan=PASS, secretscan=PASS
 OUTPUT: VERDICT + RISK + ISSUES
-SKILLS:
---- engineering-conventions ---
-[paste full .opencode/skills/engineering-conventions/SKILL.md body here if present]
+SKILLS: file:.claude/skills/engineering-conventions/SKILL.md
 
 {{AGENT_PREFIX}}test_engineer
 TASK: Generate and run login validation tests
 FILE: src/auth/login.ts
 OUTPUT: Test file at src/auth/login.test.ts + VERDICT: PASS/FAIL with failure details
-SKILLS:
---- writing-tests ---
-[paste full .opencode/skills/writing-tests/SKILL.md body here if present]
+SKILLS: file:.claude/skills/writing-tests/SKILL.md
 
 {{AGENT_PREFIX}}critic
 TASK: Review plan for user authentication feature
@@ -548,18 +545,14 @@ FILE: src/auth/login.ts
 CHECK: [security-only] — evaluate against OWASP Top 10, scan for hardcoded secrets, injection vectors, insecure crypto, missing input validation
 GATES: lint=PASS, sast_scan=PASS, secretscan=PASS
 OUTPUT: VERDICT + RISK + SECURITY ISSUES ONLY
-SKILLS:
---- engineering-conventions ---
-[paste full .opencode/skills/engineering-conventions/SKILL.md body here if present]
+SKILLS: file:.claude/skills/engineering-conventions/SKILL.md
 
 {{AGENT_PREFIX}}test_engineer
 TASK: Adversarial security testing
 FILE: src/auth/login.ts
 CONSTRAINT: ONLY attack vectors — malformed inputs, oversized payloads, injection attempts, auth bypass, boundary violations
 OUTPUT: Test file + VERDICT: PASS/FAIL
-SKILLS:
---- writing-tests ---
-[paste full .opencode/skills/writing-tests/SKILL.md body here if present]
+SKILLS: file:.claude/skills/writing-tests/SKILL.md
 
 {{AGENT_PREFIX}}explorer
 TASK: Integration impact analysis

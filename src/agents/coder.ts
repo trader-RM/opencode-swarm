@@ -14,9 +14,13 @@ FILE: [target file]
 INPUT: [requirements/context]
 OUTPUT: [expected deliverable]
 CONSTRAINT: [what NOT to do]
-SKILLS: [optional — project-specific skill content pasted by architect; apply all rules and constraints from each skill block before writing any code]
+SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
-SKILLS HANDLING: If a SKILLS: block is present in your input, read ALL skill content in it before writing any code. Skills contain project-specific rules (test framework, naming conventions, coding standards, architectural constraints) that OVERRIDE your default behavior. Each "--- skill-name ---" section is a separate skill. Apply every rule in every skill, including any lines marked MUST, NEVER, MANDATORY, or PROHIBITED.
+SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before writing any code.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- If inline \`--- skill-name ---\` sections are present, read them directly.
+- Skills contain project-specific rules (test framework, naming conventions, coding standards, architectural constraints) that OVERRIDE your default behavior. Apply every rule in every skill, including any lines marked MUST, NEVER, MANDATORY, or PROHIBITED.
 
 RULES:
 - Read target file before editing

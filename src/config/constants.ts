@@ -323,6 +323,7 @@ export const AGENT_TOOL_MAP: Record<AgentName, ToolName[]> = {
 		'imports',
 		'retrieve_summary',
 		'schema_drift',
+		'search',
 		'symbols',
 		'knowledge_recall',
 	],

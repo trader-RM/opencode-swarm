@@ -14,6 +14,7 @@ import { createCoderAgent } from '../../../src/agents/coder';
 import { createReviewerAgent } from '../../../src/agents/reviewer';
 import { createSMEAgent } from '../../../src/agents/sme';
 import { createTestEngineerAgent } from '../../../src/agents/test-engineer';
+import { AGENT_TOOL_MAP } from '../../../src/config/constants';
 
 describe('Skills Propagation to Subagents', () => {
 	describe('Architect Prompt — SKILLS PROPAGATION section', () => {
@@ -28,6 +29,12 @@ describe('Skills Propagation to Subagents', () => {
 			expect(prompt).toContain('.claude/skills');
 		});
 
+		it('uses the search tool instead of a nonexistent glob tool for skill discovery', () => {
+			const skillsSection = prompt.slice(prompt.indexOf('SKILLS PROPAGATION'));
+			expect(skillsSection).toContain('search');
+			expect(skillsSection).not.toContain('Use `glob`');
+		});
+
 		it('instructs architect to cache skill index in .swarm/context.md', () => {
 			const skillsSection = prompt.slice(prompt.indexOf('SKILLS PROPAGATION'));
 			expect(skillsSection).toContain('.swarm/context.md');
@@ -39,6 +46,13 @@ describe('Skills Propagation to Subagents', () => {
 			expect(skillsSection).toContain('test_engineer');
 			expect(skillsSection).toContain('reviewer');
 			expect(skillsSection).toContain('coder');
+		});
+
+		it('explains that file references reduce context bloat', () => {
+			const skillsSection = prompt.slice(prompt.indexOf('SKILLS PROPAGATION'));
+			expect(skillsSection).toContain('context');
+			expect(skillsSection).toContain('bloat');
+			expect(skillsSection).toContain('file:');
 		});
 
 		it('includes anti-rationalization rules against skipping skills', () => {
@@ -66,28 +80,34 @@ describe('Skills Propagation to Subagents', () => {
 			expect(delegationSection).toContain('SKILLS:');
 		});
 
-		it('coder delegation example includes SKILLS block', () => {
+		it('coder delegation example includes file-based SKILLS reference', () => {
 			const coderExample = prompt.slice(
 				prompt.indexOf('TASK: Add input validation to login'),
 				prompt.indexOf('TASK: Review login validation'),
 			);
-			expect(coderExample).toContain('SKILLS:');
+			expect(coderExample).toContain(
+				'SKILLS: file:.claude/skills/engineering-conventions/SKILL.md',
+			);
 		});
 
-		it('reviewer delegation example includes SKILLS block', () => {
+		it('reviewer delegation example includes file-based SKILLS reference', () => {
 			const reviewerExample = prompt.slice(
 				prompt.indexOf('TASK: Review login validation'),
 				prompt.indexOf('TASK: Generate and run login validation tests'),
 			);
-			expect(reviewerExample).toContain('SKILLS:');
+			expect(reviewerExample).toContain(
+				'SKILLS: file:.claude/skills/engineering-conventions/SKILL.md',
+			);
 		});
 
-		it('test_engineer delegation example includes SKILLS block', () => {
+		it('test_engineer delegation example includes file-based SKILLS reference', () => {
 			const testEngineerExample = prompt.slice(
 				prompt.indexOf('TASK: Generate and run login validation tests'),
 				prompt.indexOf('TASK: Review plan for user authentication'),
 			);
-			expect(testEngineerExample).toContain('SKILLS:');
+			expect(testEngineerExample).toContain(
+				'SKILLS: file:.claude/skills/writing-tests/SKILL.md',
+			);
 		});
 
 		it('explorer delegation example uses SKILLS: none', () => {
@@ -113,21 +133,28 @@ describe('Skills Propagation to Subagents', () => {
 		it('INPUT FORMAT contains SKILLS field', () => {
 			const inputSection = prompt.slice(prompt.indexOf('INPUT FORMAT'));
 			expect(inputSection).toContain('SKILLS:');
+			expect(inputSection).toContain('file: references');
 		});
 
 		it('contains SKILLS HANDLING instructions', () => {
 			expect(prompt).toContain('SKILLS HANDLING');
 		});
 
-		it('SKILLS HANDLING instructs to read ALL skill content before writing code', () => {
+		it('SKILLS HANDLING instructs to load file-based skills before writing code', () => {
 			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
-			expect(skillsHandling).toContain('read ALL skill content');
+			expect(skillsHandling).toContain('load EVERY referenced skill');
+			expect(skillsHandling).toContain('use the search tool');
 			expect(skillsHandling).toContain('before writing any code');
 		});
 
 		it('SKILLS HANDLING explains that skills OVERRIDE default behavior', () => {
 			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
 			expect(skillsHandling).toContain('OVERRIDE');
+		});
+
+		it('SKILLS HANDLING fails loudly when a referenced skill cannot be loaded', () => {
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('SKILL_LOAD_FAILED');
 		});
 	});
 
@@ -137,17 +164,18 @@ describe('Skills Propagation to Subagents', () => {
 		it('INPUT FORMAT contains SKILLS field', () => {
 			const inputSection = prompt.slice(prompt.indexOf('## INPUT FORMAT'));
 			expect(inputSection).toContain('SKILLS:');
+			expect(inputSection).toContain('file: references');
 		});
 
 		it('contains SKILLS HANDLING instructions', () => {
 			expect(prompt).toContain('SKILLS HANDLING');
 		});
 
-		it('SKILLS HANDLING instructs to read ALL skill content before review', () => {
+		it('SKILLS HANDLING instructs to load file-based skills before review', () => {
 			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
-			expect(skillsHandling).toContain(
-				'read ALL skill content before beginning',
-			);
+			expect(skillsHandling).toContain('load EVERY referenced skill');
+			expect(skillsHandling).toContain('use the search tool');
+			expect(skillsHandling).toContain('before beginning');
 		});
 
 		it('SKILLS HANDLING states violations should be flagged', () => {
@@ -172,17 +200,18 @@ describe('Skills Propagation to Subagents', () => {
 		it('INPUT FORMAT contains SKILLS field', () => {
 			const inputSection = prompt.slice(prompt.indexOf('INPUT FORMAT'));
 			expect(inputSection).toContain('SKILLS:');
+			expect(inputSection).toContain('file: references');
 		});
 
 		it('contains SKILLS HANDLING instructions', () => {
 			expect(prompt).toContain('SKILLS HANDLING');
 		});
 
-		it('SKILLS HANDLING instructs to read ALL skill content before writing tests', () => {
+		it('SKILLS HANDLING instructs to load file-based skills before writing tests', () => {
 			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
-			expect(skillsHandling).toContain(
-				'read ALL skill content before writing any test code',
-			);
+			expect(skillsHandling).toContain('load EVERY referenced skill');
+			expect(skillsHandling).toContain('use the search tool');
+			expect(skillsHandling).toContain('before writing any test code');
 		});
 
 		it('SKILLS HANDLING explains skills override default framework choices', () => {
@@ -199,17 +228,27 @@ describe('Skills Propagation to Subagents', () => {
 		it('INPUT FORMAT contains SKILLS field', () => {
 			const inputSection = prompt.slice(prompt.indexOf('## INPUT FORMAT'));
 			expect(inputSection).toContain('SKILLS:');
+			expect(inputSection).toContain('file: references');
 		});
 
 		it('contains SKILLS HANDLING instructions', () => {
 			expect(prompt).toContain('SKILLS HANDLING');
 		});
 
-		it('SKILLS HANDLING instructs to read ALL skill content before recommendation', () => {
+		it('SKILLS HANDLING instructs to load file-based skills before recommendation', () => {
 			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
-			expect(skillsHandling).toContain(
-				'read ALL skill content before formulating',
-			);
+			expect(skillsHandling).toContain('load EVERY referenced skill');
+			expect(skillsHandling).toContain('use the search tool');
+			expect(skillsHandling).toContain('before formulating');
+		});
+	});
+
+	describe('Skill-loading agents have a tool capable of reading file-based skills', () => {
+		it('coder, reviewer, test_engineer, and sme all include search', () => {
+			expect(AGENT_TOOL_MAP.coder).toContain('search');
+			expect(AGENT_TOOL_MAP.reviewer).toContain('search');
+			expect(AGENT_TOOL_MAP.test_engineer).toContain('search');
+			expect(AGENT_TOOL_MAP.sme).toContain('search');
 		});
 	});
 });

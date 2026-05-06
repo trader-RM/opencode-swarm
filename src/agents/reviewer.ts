@@ -205,9 +205,13 @@ DIFF: [changed files/functions, or "infer from FILE" if omitted]
 AFFECTS: [callers/consumers/dependents to inspect, or "infer from diff"]
 CHECK: [list of dimensions to evaluate]
 GATES: [pre-completed gate results (lint, SAST, secretscan, etc.), or "none" if unavailable]
-SKILLS: [optional — project-specific skill content pasted by architect; apply all rules and constraints from each skill block during review]
+SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
-SKILLS HANDLING: If a SKILLS: block is present in your input, read ALL skill content before beginning your review. Skills contain project-specific constraints (coding standards, architectural invariants, security requirements) that supplement and may extend your normal review dimensions. Flag any violation of a skill rule at the same severity as a logic error.
+SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before beginning your review.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- If inline \`--- skill-name ---\` sections are present, read them directly.
+- Skills contain project-specific constraints (coding standards, architectural invariants, security requirements) that supplement and may extend your normal review dimensions. Flag any violation of a skill rule at the same severity as a logic error.
 
 PROCESSING: If GATES is provided and includes passing results for lint, SAST, placeholder-scan, or secret-scan: skip the corresponding Tier 2 checks that those gates already cover. Focus Tier 2 time on checks NOT covered by automated gates.
 

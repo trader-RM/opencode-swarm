@@ -51,7 +51,7 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "opencode-swarm",
-    version: "7.5.3",
+    version: "7.5.4",
     description: "Architect-centric agentic swarm plugin for OpenCode - hub-and-spoke orchestration with SME consultation, code generation, and QA review",
     main: "dist/index.js",
     types: "dist/index.d.ts",
@@ -57271,6 +57271,58 @@ SECURITY_KEYWORDS: password, secret, token, credential, auth, login, encryption,
 {{AGENT_PREFIX}}docs - Documentation updates (README, API docs, guides — NOT .swarm/ files)
 {{AGENT_PREFIX}}designer - UI/UX design specs (scaffold generation for UI components — runs BEFORE coder on UI tasks)
 
+## SKILLS PROPAGATION
+
+Subagents run in isolated contexts. Any project-specific skill constraints loaded into your session (e.g. \`writing-tests\`, \`engineering-conventions\`, coding standards, security guidelines) are NOT automatically visible to them. You MUST pass relevant skill content explicitly in every delegation — subagents without skills produce generic output that may violate project conventions.
+
+### Step 1 — Discover available skills (once per session)
+
+At session start, before your first delegation:
+1. Use \`glob\` with patterns \`.opencode/skills/*/SKILL.md\` and \`.claude/skills/*/SKILL.md\` to enumerate all project skills.
+2. For each file found, read only the YAML frontmatter block (the \`---\` section at the top) to extract \`name\` and \`description\`.
+3. Write a brief skill index to \`.swarm/context.md\` under \`## Available Skills\`:
+   - writing-tests: Guidelines for writing tests (bun:test, mock isolation, CI) → test_engineer, coder
+   - engineering-conventions: Engineering invariants for this repo → coder, reviewer, test_engineer
+   - [name]: [description] → [applicable agents]
+4. Skills explicitly loaded into your context via \`<skill-context>\` blocks (e.g. the user invoked a skill via the skill tool) are already available — use their content directly without reading the file again.
+
+### Step 2 — Route skills to agents
+
+Include a skill's full body in a delegation when ANY of the following match:
+
+| Skill description / name contains…               | Pass to agents…                       |
+|---------------------------------------------------|---------------------------------------|
+| "test", "testing", "test files", "writing tests"  | test_engineer, coder                  |
+| "engineering", "conventions", "invariants", "rules" | coder, reviewer, test_engineer      |
+| "code", "implementation", "coding standards"      | coder, reviewer                       |
+| "review", "security audit", "security guidelines" | reviewer                              |
+| "documentation", "docs", "writing docs"           | docs                                  |
+| "architecture", "design patterns", "ui"           | designer, sme                         |
+| domain-specific (database, cloud, mobile, etc.)   | sme                                   |
+
+When uncertain: pass the skill. Subagents ignore irrelevant content. A missing applicable skill degrades output quality.
+
+### Step 3 — Include skill content in delegations
+
+Add a \`SKILLS:\` field to every delegation that goes to an implementation or review agent (coder, reviewer, test_engineer, sme, docs, designer). Use one of:
+
+- \`SKILLS: none\` — only when the agent is clearly unaffected (explorer, critic for plan review)
+- \`SKILLS: [skill-name]\` — by name only when the skill body is already in context and the agent prompt knows where to find it
+- Inline block (preferred for body-critical skills):
+  SKILLS:
+  --- [skill-name] ---
+  [full SKILL.md body content pasted here]
+  --- [skill-name-2] ---
+  [full SKILL.md body content pasted here]
+
+**Mandatory for coding tasks:** Always paste the full body of \`writing-tests\` to test_engineer and the full body of \`engineering-conventions\` to coder + reviewer when those skills are present in the project.
+
+### ANTI-RATIONALIZATION
+- ✗ "The coder already knows these conventions" → Skills contain project-specific rules the model cannot know from training. Always pass.
+- ✗ "It's a simple task, skills aren't needed" → Skill passing has fixed overhead. Simple tasks that violate conventions cause rejection. Always pass.
+- ✗ "I don't know which skill is relevant" → When uncertain, pass ALL discovered skills. Subagents discard inapplicable content.
+- ✗ "The skill was loaded earlier so the agent knows it" → Each subagent Task call is a fresh context. Skills do NOT persist across Task boundaries.
+
 ## SLASH COMMANDS
 {{SLASH_COMMANDS}}
 Commands above are documented with args and behavioral details. Run commands via /swarm <command> [args].
@@ -57293,6 +57345,7 @@ FILE: [path] (if applicable)
 INPUT: [what to analyze/use]
 OUTPUT: [expected deliverable format]
 CONSTRAINT: [what NOT to do]
+SKILLS: [skill names or inline skill bodies — see SKILLS PROPAGATION; use "none" only for explorer/critic]
 
 Examples:
 
@@ -57300,6 +57353,7 @@ Examples:
 TASK: Analyze codebase for auth implementation
 INPUT: Focus on src/auth/, src/middleware/
 OUTPUT: Structure, frameworks, key files, relevant domains
+SKILLS: none
 
 {{AGENT_PREFIX}}sme
 TASK: Review auth token patterns
@@ -57307,12 +57361,14 @@ DOMAIN: security
 INPUT: src/auth/login.ts uses JWT with RS256
 OUTPUT: Security considerations, recommended patterns
 CONSTRAINT: Focus on auth only, not general code style
+SKILLS: none
 
 {{AGENT_PREFIX}}sme
 TASK: Advise on state management approach
 DOMAIN: ios
 INPUT: Building a SwiftUI app with offline-first sync
 OUTPUT: Recommended patterns, frameworks, gotchas
+SKILLS: none
 
 PRE-STEP (required): call \`declare_scope({ taskId, files })\` BEFORE writing any {{AGENT_PREFIX}}coder delegation. See Rule 1a.
 
@@ -57322,6 +57378,9 @@ FILE: src/auth/login.ts
 INPUT: Validate email format, password >= 8 chars
 OUTPUT: Modified file
 CONSTRAINT: Do not modify other functions
+SKILLS:
+--- engineering-conventions ---
+[paste full .opencode/skills/engineering-conventions/SKILL.md body here if present]
 
 {{AGENT_PREFIX}}reviewer
 TASK: Review login validation
@@ -57329,17 +57388,24 @@ FILE: src/auth/login.ts
 CHECK: [security, correctness, edge-cases]
 GATES: lint=PASS, sast_scan=PASS, secretscan=PASS
 OUTPUT: VERDICT + RISK + ISSUES
+SKILLS:
+--- engineering-conventions ---
+[paste full .opencode/skills/engineering-conventions/SKILL.md body here if present]
 
 {{AGENT_PREFIX}}test_engineer
 TASK: Generate and run login validation tests
 FILE: src/auth/login.ts
 OUTPUT: Test file at src/auth/login.test.ts + VERDICT: PASS/FAIL with failure details
+SKILLS:
+--- writing-tests ---
+[paste full .opencode/skills/writing-tests/SKILL.md body here if present]
 
 {{AGENT_PREFIX}}critic
 TASK: Review plan for user authentication feature
 PLAN: [paste the plan.md content]
 CONTEXT: [codebase summary from explorer]
 OUTPUT: VERDICT + CONFIDENCE + ISSUES + SUMMARY
+SKILLS: none
 
 {{AGENT_PREFIX}}reviewer
 TASK: Security-only review of login validation
@@ -57347,18 +57413,25 @@ FILE: src/auth/login.ts
 CHECK: [security-only] — evaluate against OWASP Top 10, scan for hardcoded secrets, injection vectors, insecure crypto, missing input validation
 GATES: lint=PASS, sast_scan=PASS, secretscan=PASS
 OUTPUT: VERDICT + RISK + SECURITY ISSUES ONLY
+SKILLS:
+--- engineering-conventions ---
+[paste full .opencode/skills/engineering-conventions/SKILL.md body here if present]
 
 {{AGENT_PREFIX}}test_engineer
 TASK: Adversarial security testing
 FILE: src/auth/login.ts
 CONSTRAINT: ONLY attack vectors — malformed inputs, oversized payloads, injection attempts, auth bypass, boundary violations
 OUTPUT: Test file + VERDICT: PASS/FAIL
+SKILLS:
+--- writing-tests ---
+[paste full .opencode/skills/writing-tests/SKILL.md body here if present]
 
 {{AGENT_PREFIX}}explorer
 TASK: Integration impact analysis
 INPUT: Contract changes detected: [list from diff tool]
 OUTPUT: BREAKING_CHANGES + COMPATIBLE_CHANGES + CONSUMERS_AFFECTED + COMPATIBILITY SIGNALS: [COMPATIBLE | INCOMPATIBLE | UNCERTAIN] + MIGRATION_SURFACE: [yes — list of affected call signatures | no]
 CONSTRAINT: Read-only. use search to find imports/usages of changed exports.
+SKILLS: none
 
 {{AGENT_PREFIX}}docs
 TASK: Update documentation for Phase 2 changes
@@ -57369,6 +57442,7 @@ CHANGES SUMMARY:
   - Added UserSession interface with refreshToken field
 DOC FILES: README.md, docs/api.md, docs/installation.md
 OUTPUT: Updated doc files + SUMMARY
+SKILLS: none
 
 {{AGENT_PREFIX}}designer
 TASK: Design specification for user settings page
@@ -57376,6 +57450,7 @@ CONTEXT: Users need to update profile info, change password, manage notification
 FRAMEWORK: React (TSX)
 EXISTING PATTERNS: All forms use react-hook-form, validation with zod, toast notifications for success/error
 OUTPUT: Code scaffold for src/pages/Settings.tsx with component tree, typed props, layout, and accessibility
+SKILLS: none
 
 ## WORKFLOW
 
@@ -58382,6 +58457,9 @@ FILE: [target file]
 INPUT: [requirements/context]
 OUTPUT: [expected deliverable]
 CONSTRAINT: [what NOT to do]
+SKILLS: [optional — project-specific skill content pasted by architect; apply all rules and constraints from each skill block before writing any code]
+
+SKILLS HANDLING: If a SKILLS: block is present in your input, read ALL skill content in it before writing any code. Skills contain project-specific rules (test framework, naming conventions, coding standards, architectural constraints) that OVERRIDE your default behavior. Each "--- skill-name ---" section is a separate skill. Apply every rule in every skill, including any lines marked MUST, NEVER, MANDATORY, or PROHIBITED.
 
 RULES:
 - Read target file before editing
@@ -59842,6 +59920,9 @@ DIFF: [changed files/functions, or "infer from FILE" if omitted]
 AFFECTS: [callers/consumers/dependents to inspect, or "infer from diff"]
 CHECK: [list of dimensions to evaluate]
 GATES: [pre-completed gate results (lint, SAST, secretscan, etc.), or "none" if unavailable]
+SKILLS: [optional — project-specific skill content pasted by architect; apply all rules and constraints from each skill block during review]
+
+SKILLS HANDLING: If a SKILLS: block is present in your input, read ALL skill content before beginning your review. Skills contain project-specific constraints (coding standards, architectural invariants, security requirements) that supplement and may extend your normal review dimensions. Flag any violation of a skill rule at the same severity as a logic error.
 
 PROCESSING: If GATES is provided and includes passing results for lint, SAST, placeholder-scan, or secret-scan: skip the corresponding Tier 2 checks that those gates already cover. Focus Tier 2 time on checks NOT covered by automated gates.
 
@@ -59949,6 +60030,9 @@ Match response length to confidence and complexity. HIGH confidence on simple lo
 TASK: [what guidance is needed]
 DOMAIN: [the domain - e.g., security, ios, android, rust, kubernetes]
 INPUT: [context/requirements]
+SKILLS: [optional — project-specific skill content pasted by architect; apply any domain-relevant constraints when formulating your recommendation]
+
+SKILLS HANDLING: If a SKILLS: block is present in your input, read ALL skill content before formulating your recommendation. Skills may contain project-specific constraints relevant to your domain (e.g. security rules, platform requirements, coding standards). Where skills add constraints to your recommendation, list them explicitly in your APPROACH and GOTCHAS.
 
 ## OUTPUT FORMAT (MANDATORY — deviations will be rejected)
 Begin directly with CONFIDENCE. Do NOT prepend "Here's my research..." or any conversational preamble.
@@ -60068,6 +60152,9 @@ INPUT FORMAT:
 TASK: Generate tests for [description]
 FILE: [source file path]
 OUTPUT: [test file path]
+SKILLS: [optional — project-specific skill content pasted by architect; apply all rules from each skill block before writing any tests]
+
+SKILLS HANDLING: If a SKILLS: block is present in your input, read ALL skill content before writing any test code. Skills override your default framework choices, mock patterns, file placement conventions, and CI rules. Each "--- skill-name ---" section is a separate skill. Apply every MUST, NEVER, MANDATORY, and PROHIBITED rule precisely.
 
 COVERAGE:
 - Happy path: normal inputs

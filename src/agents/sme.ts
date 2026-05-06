@@ -48,9 +48,13 @@ Match response length to confidence and complexity. HIGH confidence on simple lo
 TASK: [what guidance is needed]
 DOMAIN: [the domain - e.g., security, ios, android, rust, kubernetes]
 INPUT: [context/requirements]
-SKILLS: [optional — project-specific skill content pasted by architect; apply any domain-relevant constraints when formulating your recommendation]
+SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
-SKILLS HANDLING: If a SKILLS: block is present in your input, read ALL skill content before formulating your recommendation. Skills may contain project-specific constraints relevant to your domain (e.g. security rules, platform requirements, coding standards). Where skills add constraints to your recommendation, list them explicitly in your APPROACH and GOTCHAS.
+SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before formulating your recommendation.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- If inline \`--- skill-name ---\` sections are present, read them directly.
+- Skills may contain project-specific constraints relevant to your domain (e.g. security rules, platform requirements, coding standards). Where skills add constraints to your recommendation, list them explicitly in your APPROACH and GOTCHAS.
 
 ## OUTPUT FORMAT (MANDATORY — deviations will be rejected)
 Begin directly with CONFIDENCE. Do NOT prepend "Here's my research..." or any conversational preamble.
