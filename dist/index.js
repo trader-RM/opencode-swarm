@@ -57282,7 +57282,7 @@ Subagents run in isolated contexts. Any project-specific skill constraints loade
 
 At session start, before your first delegation:
 1. Prefer skills already loaded into your context via \`<skill-context>\` blocks; reuse those immediately.
-2. When you need to inspect on-disk skills, use the \`search\` tool against \`.opencode/skills/*/SKILL.md\` and \`.claude/skills/*/SKILL.md\` to read only the YAML frontmatter lines you need (for example \`^name:\` and \`^description:\`).
+2. When you need to inspect on-disk skills, use the \`search\` tool with \`include\` patterns like \`.opencode/skills/*/SKILL.md,.claude/skills/*/SKILL.md\` and frontmatter queries such as \`^name:\` / \`^description:\` so you only read the YAML lines you need.
 3. Write a brief skill index to \`.swarm/context.md\` under \`## Available Skills\`:
    - writing-tests: Guidelines for writing tests (bun:test, mock isolation, CI) → test_engineer, coder
    - engineering-conventions: Engineering invariants for this repo → coder, reviewer, test_engineer
@@ -58453,7 +58453,7 @@ CONSTRAINT: [what NOT to do]
 SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before writing any code.
-- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
 - If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Skills contain project-specific rules (test framework, naming conventions, coding standards, architectural constraints) that OVERRIDE your default behavior. Apply every rule in every skill, including any lines marked MUST, NEVER, MANDATORY, or PROHIBITED.
@@ -59445,7 +59445,7 @@ EXISTING PATTERNS: [current design system, component library, styling approach]
 SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before producing the design specification.
-- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
 - If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Apply any architecture, design-system, accessibility, or UI-specific constraints from the loaded skills while producing the scaffold.
@@ -59628,7 +59628,7 @@ DOC FILES: [list of documentation files to update]
 SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before updating docs.
-- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
 - If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Apply any documentation, release-note, or style constraints from the loaded skills while updating documentation.
@@ -59934,7 +59934,7 @@ GATES: [pre-completed gate results (lint, SAST, secretscan, etc.), or "none" if 
 SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before beginning your review.
-- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
 - If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Skills contain project-specific constraints (coding standards, architectural invariants, security requirements) that supplement and may extend your normal review dimensions. Flag any violation of a skill rule at the same severity as a logic error.
@@ -60048,7 +60048,7 @@ INPUT: [context/requirements]
 SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before formulating your recommendation.
-- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
 - If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Skills may contain project-specific constraints relevant to your domain (e.g. security rules, platform requirements, coding standards). Where skills add constraints to your recommendation, list them explicitly in your APPROACH and GOTCHAS.
@@ -60174,7 +60174,7 @@ OUTPUT: [test file path]
 SKILLS: [optional — either "none", repo-relative file: references (preferred), or inline skill content pasted by architect]
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before writing any test code.
-- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` limited to that path, \`mode: regex\`, \`query: .*\`, and sufficiently high \`max_results\` / \`max_lines\` to capture the full file.
+- For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
 - If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Skills override your default framework choices, mock patterns, file placement conventions, and CI rules. Apply every MUST, NEVER, MANDATORY, and PROHIBITED rule precisely.

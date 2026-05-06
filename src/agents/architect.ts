@@ -414,7 +414,7 @@ Subagents run in isolated contexts. Any project-specific skill constraints loade
 
 At session start, before your first delegation:
 1. Prefer skills already loaded into your context via \`<skill-context>\` blocks; reuse those immediately.
-2. When you need to inspect on-disk skills, use the \`search\` tool against \`.opencode/skills/*/SKILL.md\` and \`.claude/skills/*/SKILL.md\` to read only the YAML frontmatter lines you need (for example \`^name:\` and \`^description:\`).
+2. When you need to inspect on-disk skills, use the \`search\` tool with \`include\` patterns like \`.opencode/skills/*/SKILL.md,.claude/skills/*/SKILL.md\` and frontmatter queries such as \`^name:\` / \`^description:\` so you only read the YAML lines you need.
 3. Write a brief skill index to \`.swarm/context.md\` under \`## Available Skills\`:
    - writing-tests: Guidelines for writing tests (bun:test, mock isolation, CI) → test_engineer, coder
    - engineering-conventions: Engineering invariants for this repo → coder, reviewer, test_engineer

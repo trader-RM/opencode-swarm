@@ -31,10 +31,10 @@ describe('Skills Propagation to Subagents', () => {
 			expect(prompt).toContain('.claude/skills');
 		});
 
-		it('uses the search tool instead of a nonexistent glob tool for skill discovery', () => {
+		it('uses the search tool with include patterns for skill discovery', () => {
 			const skillsSection = prompt.slice(prompt.indexOf('SKILLS PROPAGATION'));
 			expect(skillsSection).toContain('search');
-			expect(skillsSection).not.toContain('Use `glob`');
+			expect(skillsSection).toContain('include');
 		});
 
 		it('instructs architect to cache skill index in .swarm/context.md', () => {
@@ -220,6 +220,9 @@ describe('Skills Propagation to Subagents', () => {
 		it('PROCESSING line is preserved after SKILLS HANDLING', () => {
 			// PROCESSING was there before; must remain
 			expect(prompt).toContain('PROCESSING: If GATES is provided');
+			expect(prompt.indexOf('SKILLS HANDLING')).toBeLessThan(
+				prompt.indexOf('PROCESSING: If GATES is provided'),
+			);
 		});
 
 		it('OUTPUT FORMAT section is preserved', () => {
