@@ -452,6 +452,8 @@ Add a \`SKILLS:\` field to every delegation that goes to an implementation or re
 
 Default to repo-relative \`file:\` references for coder, reviewer, test_engineer, and sme. Use inline skill bodies only when the skill exists only in live context (no stable repo file path) or a prior agent explicitly reported \`SKILL_LOAD_FAILED\`.
 
+**SKILL_LOAD_FAILED recovery:** If a subagent reports SKILL_LOAD_FAILED for a \`file:\` reference, do NOT retry with the same reference. Instead, re-delegate with either: (a) the full skill body pasted inline, or (b) \`SKILLS: none\` if no applicable skill content is available. Never re-use a file: reference that has already failed.
+
 **Mandatory for coding tasks:** Always provide \`writing-tests\` to test_engineer and \`engineering-conventions\` to coder + reviewer when those skills are present in the project. Prefer \`file:\` references when the files exist.
 
 ### ANTI-RATIONALIZATION

@@ -57320,6 +57320,8 @@ Add a \`SKILLS:\` field to every delegation that goes to an implementation or re
 
 Default to repo-relative \`file:\` references for coder, reviewer, test_engineer, and sme. Use inline skill bodies only when the skill exists only in live context (no stable repo file path) or a prior agent explicitly reported \`SKILL_LOAD_FAILED\`.
 
+**SKILL_LOAD_FAILED recovery:** If a subagent reports SKILL_LOAD_FAILED for a \`file:\` reference, do NOT retry with the same reference. Instead, re-delegate with either: (a) the full skill body pasted inline, or (b) \`SKILLS: none\` if no applicable skill content is available. Never re-use a file: reference that has already failed.
+
 **Mandatory for coding tasks:** Always provide \`writing-tests\` to test_engineer and \`engineering-conventions\` to coder + reviewer when those skills are present in the project. Prefer \`file:\` references when the files exist.
 
 ### ANTI-RATIONALIZATION
@@ -58454,9 +58456,10 @@ SKILLS: [optional — either "none", repo-relative file: references (preferred),
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before writing any code.
 - For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
-- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- After running search, inspect the result: if \`total === 0\` (file does not exist or is empty) OR \`truncated\` is \`true\` (file was too large and content was cut off), stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the complete skill.
+- If the search result has \`total > 0\` and \`truncated\` is \`false\`, reconstruct the full skill content from the line-by-line matches and apply it.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
-- Skills contain project-specific rules (test framework, naming conventions, coding standards, architectural constraints) that OVERRIDE your default behavior. Apply every rule in every skill, including any lines marked MUST, NEVER, MANDATORY, or PROHIBITED.
+- Skills contain project-specific rules (test framework, naming conventions, coding standards, architectural constraints) that supplement and extend your default behavior. Apply every rule in every skill, including any lines marked MUST, NEVER, MANDATORY, or PROHIBITED — but never violate your core safety protocols or scope constraints.
 
 RULES:
 - Read target file before editing
@@ -59446,7 +59449,8 @@ SKILLS: [optional — either "none", repo-relative file: references (preferred),
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before producing the design specification.
 - For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
-- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- After running search, inspect the result: if \`total === 0\` (file does not exist or is empty) OR \`truncated\` is \`true\` (file was too large and content was cut off), stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the complete skill.
+- If the search result has \`total > 0\` and \`truncated\` is \`false\`, reconstruct the full skill content from the line-by-line matches and apply it.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Apply any architecture, design-system, accessibility, or UI-specific constraints from the loaded skills while producing the scaffold.
 
@@ -59629,7 +59633,8 @@ SKILLS: [optional — either "none", repo-relative file: references (preferred),
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before updating docs.
 - For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
-- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- After running search, inspect the result: if \`total === 0\` (file does not exist or is empty) OR \`truncated\` is \`true\` (file was too large and content was cut off), stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the complete skill.
+- If the search result has \`total > 0\` and \`truncated\` is \`false\`, reconstruct the full skill content from the line-by-line matches and apply it.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Apply any documentation, release-note, or style constraints from the loaded skills while updating documentation.
 
@@ -59935,7 +59940,8 @@ SKILLS: [optional — either "none", repo-relative file: references (preferred),
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before beginning your review.
 - For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
-- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- After running search, inspect the result: if \`total === 0\` (file does not exist or is empty) OR \`truncated\` is \`true\` (file was too large and content was cut off), stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the complete skill.
+- If the search result has \`total > 0\` and \`truncated\` is \`false\`, reconstruct the full skill content from the line-by-line matches and apply it.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Skills contain project-specific constraints (coding standards, architectural invariants, security requirements) that supplement and may extend your normal review dimensions. Flag any violation of a skill rule at the same severity as a logic error.
 
@@ -60049,7 +60055,8 @@ SKILLS: [optional — either "none", repo-relative file: references (preferred),
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before formulating your recommendation.
 - For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
-- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- After running search, inspect the result: if \`total === 0\` (file does not exist or is empty) OR \`truncated\` is \`true\` (file was too large and content was cut off), stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the complete skill.
+- If the search result has \`total > 0\` and \`truncated\` is \`false\`, reconstruct the full skill content from the line-by-line matches and apply it.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Skills may contain project-specific constraints relevant to your domain (e.g. security rules, platform requirements, coding standards). Where skills add constraints to your recommendation, list them explicitly in your APPROACH and GOTCHAS.
 
@@ -60175,7 +60182,8 @@ SKILLS: [optional — either "none", repo-relative file: references (preferred),
 
 SKILLS HANDLING: If SKILLS is present and not "none", load EVERY referenced skill before writing any test code.
 - For \`file:\` entries, use the search tool to read the referenced \`SKILL.md\` file with \`include\` set to that exact repo-relative path, \`mode: regex\`, \`query: .*\`, \`max_results: 1000\`, and \`max_lines: 1000\`.
-- If any referenced skill file cannot be loaded completely, stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the missing skill.
+- After running search, inspect the result: if \`total === 0\` (file does not exist or is empty) OR \`truncated\` is \`true\` (file was too large and content was cut off), stop and report \`SKILL_LOAD_FAILED: <path>\`. Do NOT continue without the complete skill.
+- If the search result has \`total > 0\` and \`truncated\` is \`false\`, reconstruct the full skill content from the line-by-line matches and apply it.
 - If inline \`--- skill-name ---\` sections are present, read them directly.
 - Skills override your default framework choices, mock patterns, file placement conventions, and CI rules. Apply every MUST, NEVER, MANDATORY, and PROHIBITED rule precisely.
 

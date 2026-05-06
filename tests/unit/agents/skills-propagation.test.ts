@@ -59,7 +59,9 @@ describe('Skills Propagation to Subagents', () => {
 
 		it('prefers file references by default and keeps inline fallback for load failures', () => {
 			const skillsSection = prompt.slice(prompt.indexOf('SKILLS PROPAGATION'));
-			expect(skillsSection).toContain('Default to repo-relative `file:` references');
+			expect(skillsSection).toContain(
+				'Default to repo-relative `file:` references',
+			);
 			expect(skillsSection).toContain('SKILL_LOAD_FAILED');
 			expect(skillsSection).toContain('Use inline skill bodies only');
 		});
@@ -76,6 +78,12 @@ describe('Skills Propagation to Subagents', () => {
 			const skillsSection = prompt.slice(prompt.indexOf('SKILLS PROPAGATION'));
 			expect(skillsSection).toContain('isolated contexts');
 			expect(skillsSection).toContain('NOT automatically visible');
+		});
+
+		it('includes SKILL_LOAD_FAILED recovery instruction with do NOT retry', () => {
+			const skillsSection = prompt.slice(prompt.indexOf('SKILLS PROPAGATION'));
+			expect(skillsSection).toContain('SKILL_LOAD_FAILED recovery');
+			expect(skillsSection).toContain('do NOT retry with the same reference');
 		});
 	});
 
@@ -176,9 +184,19 @@ describe('Skills Propagation to Subagents', () => {
 			expect(skillsHandling).toContain('before writing any code');
 		});
 
-		it('SKILLS HANDLING explains that skills OVERRIDE default behavior', () => {
+		it('SKILLS HANDLING explains that skills supplement and extend default behavior', () => {
 			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
-			expect(skillsHandling).toContain('OVERRIDE');
+			expect(skillsHandling).toContain('supplement and extend');
+		});
+
+		it('SKILLS HANDLING checks for total === 0 on search result', () => {
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('total === 0');
+		});
+
+		it('SKILLS HANDLING checks for truncated on search result', () => {
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('truncated');
 		});
 
 		it('SKILLS HANDLING fails loudly when a referenced skill cannot be loaded', () => {
@@ -215,6 +233,16 @@ describe('Skills Propagation to Subagents', () => {
 		it('SKILLS HANDLING fails loudly when a referenced skill cannot be loaded', () => {
 			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
 			expect(skillsHandling).toContain('SKILL_LOAD_FAILED');
+		});
+
+		it('SKILLS HANDLING checks for total === 0 on search result', () => {
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('total === 0');
+		});
+
+		it('SKILLS HANDLING checks for truncated on search result', () => {
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('truncated');
 		});
 
 		it('PROCESSING line is preserved after SKILLS HANDLING', () => {
@@ -261,6 +289,11 @@ describe('Skills Propagation to Subagents', () => {
 		it('SKILLS HANDLING fails loudly when a referenced skill cannot be loaded', () => {
 			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
 			expect(skillsHandling).toContain('SKILL_LOAD_FAILED');
+		});
+
+		it('SKILLS HANDLING checks for truncated on search result', () => {
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('truncated');
 		});
 	});
 
@@ -319,6 +352,44 @@ describe('Skills Propagation to Subagents', () => {
 			expect(prompt).toContain('SKILLS HANDLING');
 			expect(prompt).toContain('use the search tool');
 			expect(prompt).toContain('SKILL_LOAD_FAILED');
+		});
+	});
+
+	describe('All 6 agent SKILLS HANDLING blocks check total === 0', () => {
+		it('coder SKILLS HANDLING contains total === 0', () => {
+			const prompt = createCoderAgent('test-model').config.prompt!;
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('total === 0');
+		});
+
+		it('reviewer SKILLS HANDLING contains total === 0', () => {
+			const prompt = createReviewerAgent('test-model').config.prompt!;
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('total === 0');
+		});
+
+		it('test_engineer SKILLS HANDLING contains total === 0', () => {
+			const prompt = createTestEngineerAgent('test-model').config.prompt!;
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('total === 0');
+		});
+
+		it('sme SKILLS HANDLING contains total === 0', () => {
+			const prompt = createSMEAgent('test-model').config.prompt!;
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('total === 0');
+		});
+
+		it('docs SKILLS HANDLING contains total === 0', () => {
+			const prompt = createDocsAgent('test-model').config.prompt!;
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('total === 0');
+		});
+
+		it('designer SKILLS HANDLING contains total === 0', () => {
+			const prompt = createDesignerAgent('test-model').config.prompt!;
+			const skillsHandling = prompt.slice(prompt.indexOf('SKILLS HANDLING'));
+			expect(skillsHandling).toContain('total === 0');
 		});
 	});
 
