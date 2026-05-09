@@ -283,6 +283,66 @@ function detectMinitest(cwd: string): boolean {
 	);
 }
 
+/**
+ * Phase 3 dispatch path: detect the test framework via the
+ * `LanguageBackend` registry from `src/lang/dispatch.ts`. Currently
+ * opt-in via `SWARM_LANG_BACKEND=dispatch`; default remains the legacy
+ * `detectTestFramework` switch below. A future Phase 3b will flip the
+ * default and the env var becomes `SWARM_LANG_BACKEND=legacy` for
+ * one-release rollback.
+ *
+ * Maps `TestFrameworkSelection.name` (which mirrors the names in each
+ * profile's `test.frameworks[*].name`) back to the legacy `TestFramework`
+ * union string this function exists to produce. Names not in the
+ * union (e.g. PHP's "Pest"/"PHPUnit") collapse to `'none'`, preserving
+ * pre-Phase-3 behavior for languages whose tests the legacy path
+ * couldn't detect either.
+ */
+const DISPATCH_FRAMEWORK_MAP: Record<string, TestFramework> = {
+	'bun:test': 'bun',
+	bun: 'bun',
+	vitest: 'vitest',
+	jest: 'jest',
+	mocha: 'mocha',
+	pytest: 'pytest',
+	'cargo test': 'cargo',
+	cargo: 'cargo',
+	pester: 'pester',
+	'go test': 'go-test',
+	'maven-test': 'maven',
+	'gradle-test': 'gradle',
+	'gradle-test-groovy': 'gradle',
+	'gradle-kts': 'gradle',
+	'dotnet test': 'dotnet-test',
+	ctest: 'ctest',
+	'swift test': 'swift-test',
+	'xcodebuild-test': 'swift-test',
+	'flutter test': 'dart-test',
+	'dart test': 'dart-test',
+	rspec: 'rspec',
+	minitest: 'minitest',
+};
+
+export async function detectTestFrameworkViaDispatch(
+	cwd: string,
+): Promise<TestFramework> {
+	try {
+		// Lazy-load dispatch to keep the legacy code path import-graph small.
+		// Phase 3b will hoist this import once dispatch becomes the default.
+		const { pickBackend } = await import('../lang/dispatch');
+		const backend = await pickBackend(cwd);
+		if (!backend?.selectTestFramework) return 'none';
+		const sel = await backend.selectTestFramework(cwd);
+		if (!sel) return 'none';
+		return DISPATCH_FRAMEWORK_MAP[sel.name] ?? 'none';
+	} catch {
+		// Defensive: dispatch failures must never break the test runner. Fall
+		// through to 'none' so the caller surfaces "no test framework
+		// detected" with the existing message.
+		return 'none';
+	}
+}
+
 export async function detectTestFramework(cwd: string): Promise<TestFramework> {
 	const baseDir = cwd;
 	// Check for package.json to detect JS/TS frameworks
@@ -1854,8 +1914,16 @@ export const test_runner: ReturnType<typeof tool> = createSwarmTool({
 			MAX_TIMEOUT_MS,
 		);
 
-		// Detect the test framework
-		const framework = await detectTestFramework(workingDir);
+		// Detect the test framework. Phase 3 of language-agnostic refactor:
+		// `SWARM_LANG_BACKEND=dispatch` opts into the new LanguageBackend
+		// dispatch path; default keeps the legacy switch in
+		// `detectTestFramework` below for one release. A parity test
+		// (`tests/unit/tools/test-runner-dispatch-parity.test.ts`) asserts
+		// the two paths agree on every fixture.
+		const framework =
+			process.env.SWARM_LANG_BACKEND === 'dispatch'
+				? await detectTestFrameworkViaDispatch(workingDir)
+				: await detectTestFramework(workingDir);
 
 		if (framework === 'none') {
 			const result: TestErrorResult = {

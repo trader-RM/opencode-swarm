@@ -20,6 +20,11 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { LanguageBackend } from './backend';
+// Importing the backends barrel triggers backend registration as a module
+// side-effect (see `src/lang/backends/index.ts`). Without this, callers of
+// `pickBackend` would get only the default backend even for languages with
+// concrete overrides like typescript. The barrel is idempotent.
+import './backends';
 import { detectProjectLanguages } from './detector';
 import { LANGUAGE_BACKEND_REGISTRY } from './registry-backend';
 

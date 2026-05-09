@@ -49,6 +49,7 @@ export interface TestErrorResult {
     attempted_scope?: 'graph';
 }
 export type TestResult = TestSuccessResult | TestErrorResult;
+export declare function detectTestFrameworkViaDispatch(cwd: string): Promise<TestFramework>;
 export declare function detectTestFramework(cwd: string): Promise<TestFramework>;
 /**
  * Returns true when `basename` matches a language-specific test file naming

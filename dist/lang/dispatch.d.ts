@@ -17,6 +17,7 @@
  * project root — callers are responsible for passing the right directory.
  */
 import type { LanguageBackend } from './backend';
+import './backends';
 import { detectProjectLanguages } from './detector';
 declare const _internals: {
     detectProjectLanguages: typeof detectProjectLanguages;
