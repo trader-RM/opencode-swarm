@@ -39097,11 +39097,34 @@ class LanguageRegistry {
     this.profiles = new Map;
     this.extensionIndex = new Map;
   }
-  register(profile) {
-    this.profiles.set(profile.id, profile);
-    for (const ext of profile.extensions) {
-      this.extensionIndex.set(ext, profile.id);
+  unregister(id) {
+    const profile = this.profiles.get(id);
+    if (!profile)
+      return;
+    this.profiles.delete(id);
+    if (!profile.parserOnly) {
+      for (const ext of profile.extensions) {
+        if (this.extensionIndex.get(ext) === id) {
+          this.extensionIndex.delete(ext);
+        }
+      }
     }
+  }
+  register(profile) {
+    const existing = this.profiles.get(profile.id);
+    if (existing && existing !== profile) {
+      throw new Error(`LanguageRegistry: profile id "${profile.id}" registered twice. ` + `Each LanguageProfile.id must be unique. ` + `Got: ${profile.displayName} vs existing ${existing.displayName}.`);
+    }
+    if (!profile.parserOnly) {
+      for (const ext of profile.extensions) {
+        const claimedBy = this.extensionIndex.get(ext);
+        if (claimedBy && claimedBy !== profile.id) {
+          throw new Error(`LanguageRegistry: extension "${ext}" registered by both ` + `"${claimedBy}" and "${profile.id}". A non-parserOnly profile ` + `must not collide on extensions. If both languages legitimately ` + `share an extension, mark one parserOnly: true.`);
+        }
+        this.extensionIndex.set(ext, profile.id);
+      }
+    }
+    this.profiles.set(profile.id, profile);
   }
   get(id) {
     return this.profiles.get(id);
@@ -39133,7 +39156,8 @@ var init_profiles = __esm(() => {
     extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"],
     treeSitter: {
       grammarId: "typescript",
-      wasmFile: "tree-sitter-typescript.wasm"
+      wasmFile: "tree-sitter-typescript.wasm",
+      commentNodes: ["comment", "line_comment", "block_comment"]
     },
     build: {
       detectFiles: ["package.json"],
@@ -39226,7 +39250,11 @@ var init_profiles = __esm(() => {
     displayName: "Python",
     tier: 1,
     extensions: [".py", ".pyw"],
-    treeSitter: { grammarId: "python", wasmFile: "tree-sitter-python.wasm" },
+    treeSitter: {
+      grammarId: "python",
+      wasmFile: "tree-sitter-python.wasm",
+      commentNodes: ["comment"]
+    },
     build: {
       detectFiles: ["setup.py", "pyproject.toml", "setup.cfg"],
       commands: [
@@ -39296,7 +39324,11 @@ var init_profiles = __esm(() => {
     displayName: "Rust",
     tier: 1,
     extensions: [".rs"],
-    treeSitter: { grammarId: "rust", wasmFile: "tree-sitter-rust.wasm" },
+    treeSitter: {
+      grammarId: "rust",
+      wasmFile: "tree-sitter-rust.wasm",
+      commentNodes: ["line_comment", "block_comment"]
+    },
     build: {
       detectFiles: ["Cargo.toml"],
       commands: [
@@ -39365,7 +39397,11 @@ var init_profiles = __esm(() => {
     displayName: "Go",
     tier: 1,
     extensions: [".go"],
-    treeSitter: { grammarId: "go", wasmFile: "tree-sitter-go.wasm" },
+    treeSitter: {
+      grammarId: "go",
+      wasmFile: "tree-sitter-go.wasm",
+      commentNodes: ["comment"]
+    },
     build: {
       detectFiles: ["go.mod"],
       commands: [
@@ -39429,7 +39465,11 @@ var init_profiles = __esm(() => {
     displayName: "Java",
     tier: 2,
     extensions: [".java"],
-    treeSitter: { grammarId: "java", wasmFile: "tree-sitter-java.wasm" },
+    treeSitter: {
+      grammarId: "java",
+      wasmFile: "tree-sitter-java.wasm",
+      commentNodes: ["line_comment", "block_comment"]
+    },
     build: {
       detectFiles: ["pom.xml", "build.gradle", "build.gradle.kts"],
       commands: [
@@ -39509,7 +39549,11 @@ var init_profiles = __esm(() => {
     displayName: "Kotlin",
     tier: 2,
     extensions: [".kt", ".kts"],
-    treeSitter: { grammarId: "kotlin", wasmFile: "tree-sitter-kotlin.wasm" },
+    treeSitter: {
+      grammarId: "kotlin",
+      wasmFile: "tree-sitter-kotlin.wasm",
+      commentNodes: ["line_comment", "multiline_comment"]
+    },
     build: {
       detectFiles: ["build.gradle.kts", "build.gradle", "pom.xml"],
       commands: [
@@ -39589,7 +39633,11 @@ var init_profiles = __esm(() => {
     displayName: "C# / .NET",
     tier: 2,
     extensions: [".cs", ".csx"],
-    treeSitter: { grammarId: "csharp", wasmFile: "tree-sitter-c-sharp.wasm" },
+    treeSitter: {
+      grammarId: "csharp",
+      wasmFile: "tree-sitter-c-sharp.wasm",
+      commentNodes: ["comment"]
+    },
     build: {
       detectFiles: ["*.csproj", "*.sln", "Directory.Build.props"],
       commands: [
@@ -39657,7 +39705,11 @@ var init_profiles = __esm(() => {
     displayName: "C / C++",
     tier: 2,
     extensions: [".c", ".h", ".cpp", ".hpp", ".cc", ".cxx"],
-    treeSitter: { grammarId: "cpp", wasmFile: "tree-sitter-cpp.wasm" },
+    treeSitter: {
+      grammarId: "cpp",
+      wasmFile: "tree-sitter-cpp.wasm",
+      commentNodes: ["comment"]
+    },
     build: {
       detectFiles: ["CMakeLists.txt", "Makefile", "meson.build"],
       commands: [
@@ -39732,7 +39784,11 @@ var init_profiles = __esm(() => {
     displayName: "Swift",
     tier: 2,
     extensions: [".swift"],
-    treeSitter: { grammarId: "swift", wasmFile: "tree-sitter-swift.wasm" },
+    treeSitter: {
+      grammarId: "swift",
+      wasmFile: "tree-sitter-swift.wasm",
+      commentNodes: ["comment", "multiline_comment"]
+    },
     build: {
       detectFiles: ["Package.swift", "*.xcodeproj", "*.xcworkspace"],
       commands: [
@@ -39806,7 +39862,11 @@ var init_profiles = __esm(() => {
     displayName: "Dart / Flutter",
     tier: 3,
     extensions: [".dart"],
-    treeSitter: { grammarId: "dart", wasmFile: "tree-sitter-dart.wasm" },
+    treeSitter: {
+      grammarId: "dart",
+      wasmFile: "tree-sitter-dart.wasm",
+      commentNodes: ["comment", "documentation_comment"]
+    },
     build: {
       detectFiles: ["pubspec.yaml"],
       commands: [
@@ -39880,7 +39940,11 @@ var init_profiles = __esm(() => {
     displayName: "Ruby",
     tier: 3,
     extensions: [".rb", ".rake", ".gemspec"],
-    treeSitter: { grammarId: "ruby", wasmFile: "tree-sitter-ruby.wasm" },
+    treeSitter: {
+      grammarId: "ruby",
+      wasmFile: "tree-sitter-ruby.wasm",
+      commentNodes: ["comment"]
+    },
     build: {
       detectFiles: ["Gemfile", "Rakefile"],
       commands: [
@@ -39949,7 +40013,11 @@ var init_profiles = __esm(() => {
     displayName: "PHP",
     tier: 3,
     extensions: [".php", ".phtml", ".blade.php"],
-    treeSitter: { grammarId: "php", wasmFile: "tree-sitter-php.wasm" },
+    treeSitter: {
+      grammarId: "php",
+      wasmFile: "tree-sitter-php.wasm",
+      commentNodes: ["comment"]
+    },
     build: {
       detectFiles: ["composer.json"],
       commands: [
