@@ -51,7 +51,7 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "opencode-swarm",
-    version: "7.11.0",
+    version: "7.11.1",
     description: "Architect-centric agentic swarm plugin for OpenCode - hub-and-spoke orchestration with SME consultation, code generation, and QA review",
     main: "dist/index.js",
     types: "dist/index.d.ts",
@@ -48635,9 +48635,12 @@ function isCommandAvailable(command) {
   const isWindows = process.platform === "win32";
   const cmd = isWindows ? `${command}.exe` : command;
   try {
-    const result = bunSpawnSync(isWindows ? ["where", cmd] : ["which", cmd], {
-      stdout: "pipe",
-      stderr: "pipe"
+    const result = _internals16.spawnSyncImpl(isWindows ? ["where", cmd] : ["which", cmd], {
+      cwd: process.cwd(),
+      stdin: "ignore",
+      stdout: "ignore",
+      stderr: "ignore",
+      timeout: IS_COMMAND_AVAILABLE_TIMEOUT_MS
     });
     const available = result.success;
     toolchainCache.set(command, available);
@@ -48845,7 +48848,7 @@ function clearToolchainCache() {
 function getEcosystems() {
   return ECOSYSTEMS.map((e) => e.ecosystem);
 }
-var ECOSYSTEMS, PROFILE_TO_ECOSYSTEM_NAMES, toolchainCache, _internals16, build_discovery;
+var ECOSYSTEMS, PROFILE_TO_ECOSYSTEM_NAMES, toolchainCache, IS_COMMAND_AVAILABLE_TIMEOUT_MS = 3000, _internals16, build_discovery;
 var init_discovery = __esm(() => {
   init_dist();
   init_detector();
@@ -48968,7 +48971,8 @@ var init_discovery = __esm(() => {
     discoverBuildCommandsFromProfiles,
     discoverBuildCommands,
     clearToolchainCache,
-    getEcosystems
+    getEcosystems,
+    spawnSyncImpl: bunSpawnSync
   };
   build_discovery = tool({
     description: "Discover build commands for various ecosystems in a project directory",
