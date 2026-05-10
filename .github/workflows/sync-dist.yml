@@ -1,0 +1,30 @@
+name: Sync dist
+on:
+  push:
+    branches:
+      - 'claude/fix-scandocindex-hang-2soSZ'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Commit rebuilt dist if stale
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet dist/; then
+            git add dist/
+            git commit -m "chore(dist): auto-rebuild from source changes"
+            git push
+          fi
