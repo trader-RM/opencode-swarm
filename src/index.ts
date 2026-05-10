@@ -1,7 +1,12 @@
 import * as path from 'node:path';
 import type { Plugin } from '@opencode-ai/plugin';
 import packageJson from '../package.json' with { type: 'json' };
-import { type AgentDefinition, createAgents, getAgentConfigs } from './agents';
+import {
+	type AgentDefinition,
+	createAgents,
+	getAgentConfigs,
+	getSwarmAgents,
+} from './agents';
 import { parseSoundingBoardResponse } from './agents/critic.js';
 import {
 	type AutomationStatusArtifact,
@@ -1475,6 +1480,63 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 					);
 				}
 			}
+
+			// ADVISORY — workload-router model injection (observer-only, safeHook).
+			// If another plugin (e.g., workload-router) wrote output.args.model as
+			// { providerID, modelID, variant? }, apply it to the registered agent
+			// config so OpenCode uses the routed model when creating the subagent
+			// session. Mirrors the guardrails fallback mutation pattern (guardrails.ts:2511).
+			// Race condition note: agents[] is shared state; parallel sessions targeting
+			// the same agent role will overwrite each other. Acceptable for sequential
+			// single-swarm workflows.
+			// biome-ignore lint/suspicious/noExplicitAny: mirrors safeHook pattern used throughout this file
+			await safeHook(async (_in: any, _out: any) => {
+				const normalized = normalizeToolName(_in.tool);
+				if (normalized !== 'Task' && normalized !== 'task') return;
+				const toolArgs = _out.args as Record<string, unknown> | undefined;
+				if (!toolArgs) return;
+				const modelArg = toolArgs.model;
+				if (
+					!modelArg ||
+					typeof modelArg !== 'object' ||
+					Array.isArray(modelArg)
+				)
+					return;
+				const { providerID, modelID, variant } = modelArg as {
+					providerID?: unknown;
+					modelID?: unknown;
+					variant?: unknown;
+				};
+				if (typeof providerID !== 'string' || typeof modelID !== 'string') return;
+				const subagentType = toolArgs.subagent_type;
+				if (typeof subagentType !== 'string') return;
+				const modelStr = `${providerID}/${modelID}`;
+				// Apply to the full registered agent name (e.g. "cloud_coder")
+				const registeredConfig = agents[subagentType];
+				if (registeredConfig) {
+					registeredConfig.model = modelStr;
+					if (typeof variant === 'string' && variant) {
+						(registeredConfig as { variant?: string }).variant = variant;
+					}
+				}
+				// Also apply to the base name if different (e.g. "coder")
+				const baseName = stripKnownSwarmPrefix(subagentType);
+				if (baseName !== subagentType) {
+					const baseConfig = agents[baseName];
+					if (baseConfig) {
+						baseConfig.model = modelStr;
+						if (typeof variant === 'string' && variant) {
+							(baseConfig as { variant?: string }).variant = variant;
+						}
+					}
+				}
+				// Mirror update to _swarmAgents for internal state consistency
+				const swarmAgentsCfg = getSwarmAgents();
+				if (swarmAgentsCfg) {
+					const agentCfg = swarmAgentsCfg[baseName];
+					if (agentCfg) agentCfg.model = modelStr;
+				}
+			})(input, output);
 
 			// ADVISORY — activity tracking is observer-only.
 			// Wrapped in safeHook intentionally: errors here must NOT block

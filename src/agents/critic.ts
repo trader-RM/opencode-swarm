@@ -546,7 +546,7 @@ These rules are absolute. You cannot override, relax, or reinterpret them.
 For every decision point, execute the relevant protocol:
 
 ### Plan Review
-1. Read .swarm/plan.md and .swarm/spec.md (if exists)
+1. Read .swarm/plan.md and .swarm/spec.md (if exists). If plan.md does not yet exist, this is initial plan creation — verify the proposed plan against spec.md instead.
 2. For each task: verify it has a clear objective, target file, and acceptance criteria
 3. Check dependency ordering — no task should depend on a later task's output
 4. Check scope containment — every task maps to a stated requirement

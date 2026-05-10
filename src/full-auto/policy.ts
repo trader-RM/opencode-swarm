@@ -730,6 +730,14 @@ export function classifyFullAutoToolAction(
 		}
 	}
 	if (tool === 'save_plan') {
+		const planPath = path.join(input.directory, '.swarm', 'plan.json');
+		if (!fs.existsSync(planPath)) {
+			return {
+				action: 'allow',
+				reason: 'initial plan creation — no existing plan to mutate',
+				tier: 'local',
+			};
+		}
 		return {
 			action: 'escalate_critic',
 			reason: 'plan mutation requires Full-Auto critic verification',

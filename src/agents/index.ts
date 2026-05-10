@@ -97,7 +97,7 @@ function getModelForAgent(
 
 	// 1. Check explicit override
 	const explicit = swarmAgents?.[baseAgentName]?.model;
-	if (explicit) return explicit;
+	if (explicit !== undefined && explicit !== null) return explicit;
 
 	// NOTE: fallback_models resolution happens at runtime in guardrails (toolAfter),
 	// not here. getModelForAgent runs once at agent creation. The guardrails hook
