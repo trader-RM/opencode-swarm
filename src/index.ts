@@ -369,8 +369,38 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 			}
 		});
 	}
-	const agents = getAgentConfigs(config, ctx.directory);
-	const agentDefinitions = createAgents(config);
+	// Phase 4b: resolve language-agnostic project context for agent prompt
+	// substitution. Bounded to 2s and fails open with `null` (the agent
+	// prompts then ship with `unresolved (run /swarm preflight)` sentinels
+	// that the architect's existing DISCOVER mode picks up). Per Invariant 1
+	// (plugin init bounded + fail-open) — see ENSURE_SWARM_GIT_EXCLUDED
+	// precedent at line 342 above. The lazy `import()` keeps the heavy
+	// dispatch graph off the synchronous init prelude.
+	const projectContext = await withTimeout(
+		(async () => {
+			const mod = await import('./agents/project-context');
+			return mod.buildProjectContext(ctx.directory);
+		})(),
+		2_000, // LANG_BACKEND_DETECTION_TIMEOUT_MS — see project-context.ts
+		new Error(
+			'language-backend detection exceeded 2000ms; ' +
+				'continuing with unresolved sentinels',
+		),
+	).catch((err: unknown) => {
+		const msg = err instanceof Error ? err.message : String(err);
+		log('language-backend detection timed out or failed (non-fatal)', {
+			error: msg,
+		});
+		return null;
+	});
+
+	const agents = getAgentConfigs(
+		config,
+		ctx.directory,
+		undefined,
+		projectContext ?? undefined,
+	);
+	const agentDefinitions = createAgents(config, projectContext ?? undefined);
 
 	// Collect all registered curator agent names across all swarms.
 	// The factory resolves the correct name at call time by matching the active

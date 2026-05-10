@@ -62640,6 +62640,32 @@ as authoritative. For each applicable directive cite KNOWLEDGE_APPLIED: <id>
 in your reply, or KNOWLEDGE_IGNORED: <id> reason=... when it does not apply.
 `;
 
+// src/agents/template.ts
+function emptyProjectContext() {
+  return {
+    PROJECT_LANGUAGE: UNRESOLVED,
+    PROJECT_FRAMEWORK: UNRESOLVED,
+    BUILD_CMD: UNRESOLVED,
+    TEST_CMD: UNRESOLVED,
+    LINT_CMD: UNRESOLVED,
+    ENTRY_POINTS: UNRESOLVED,
+    CODER_CONSTRAINTS: "",
+    TEST_CONSTRAINTS: "",
+    REVIEWER_CHECKLIST: "",
+    PROJECT_CONTEXT_SECONDARY_LANGUAGES: ""
+  };
+}
+function escapeForTemplate(s) {
+  return s.replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
+}
+function bulletList(items) {
+  if (items.length === 0)
+    return "";
+  return items.map((s) => `- ${escapeForTemplate(s)}`).join(`
+`);
+}
+var UNRESOLVED = "unresolved (run /swarm preflight)";
+
 // src/agents/test-engineer.ts
 function createTestEngineerAgent(model, customPrompt, customAppendPrompt) {
   let prompt = TEST_ENGINEER_PROMPT;
@@ -62962,7 +62988,7 @@ function applyOverrides(agent, swarmAgents, swarmPrefix, quiet) {
   }
   return agent;
 }
-function createSwarmAgents(swarmId, swarmConfig, isDefault, pluginConfig) {
+function createSwarmAgents(swarmId, swarmConfig, isDefault, pluginConfig, projectContext = emptyProjectContext()) {
   const agents = [];
   const swarmAgents = swarmConfig.agents;
   _swarmAgents = swarmAgents;
@@ -62980,7 +63006,7 @@ function createSwarmAgents(swarmId, swarmConfig, isDefault, pluginConfig) {
     const swarmName = swarmConfig.name || swarmId;
     const swarmIdentity = isDefault ? "default" : swarmId;
     const agentPrefix = prefix;
-    architect.config.prompt = architect.config.prompt?.replace(/\{\{SWARM_ID\}\}/g, swarmIdentity).replace(/\{\{AGENT_PREFIX\}\}/g, agentPrefix).replace(/\{\{QA_RETRY_LIMIT\}\}/g, String(qaRetryLimit));
+    architect.config.prompt = architect.config.prompt?.replace(/\{\{SWARM_ID\}\}/g, swarmIdentity).replace(/\{\{AGENT_PREFIX\}\}/g, agentPrefix).replace(/\{\{QA_RETRY_LIMIT\}\}/g, String(qaRetryLimit)).replace(/\{\{PROJECT_LANGUAGE\}\}/g, projectContext.PROJECT_LANGUAGE).replace(/\{\{PROJECT_FRAMEWORK\}\}/g, projectContext.PROJECT_FRAMEWORK).replace(/\{\{BUILD_CMD\}\}/g, projectContext.BUILD_CMD).replace(/\{\{TEST_CMD\}\}/g, projectContext.TEST_CMD).replace(/\{\{LINT_CMD\}\}/g, projectContext.LINT_CMD).replace(/\{\{ENTRY_POINTS\}\}/g, projectContext.ENTRY_POINTS);
     if (!isDefault) {
       architect.description = `[${swarmName}] ${architect.description}`;
       const swarmHeader = `## ⚠️ YOU ARE THE ${swarmName.toUpperCase()} SWARM ARCHITECT
@@ -63114,14 +63140,14 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
   }
   return agents;
 }
-function createAgents(config3) {
+function createAgents(config3, projectContext = emptyProjectContext()) {
   const allAgents = [];
   const swarms = config3?.swarms;
   if (swarms && Object.keys(swarms).length > 0) {
     for (const swarmId of Object.keys(swarms)) {
       const swarmConfig = swarms[swarmId];
       const isDefault = swarmId === "default";
-      const swarmAgents = createSwarmAgents(swarmId, swarmConfig, isDefault, config3);
+      const swarmAgents = createSwarmAgents(swarmId, swarmConfig, isDefault, config3, projectContext);
       allAgents.push(...swarmAgents);
     }
   } else {
@@ -63129,7 +63155,7 @@ function createAgents(config3) {
       name: "Default",
       agents: config3?.agents
     };
-    const swarmAgents = createSwarmAgents("default", legacySwarmConfig, true, config3);
+    const swarmAgents = createSwarmAgents("default", legacySwarmConfig, true, config3, projectContext);
     allAgents.push(...swarmAgents);
   }
   return allAgents;
@@ -63180,8 +63206,8 @@ function resolvePrimaryAgentNames(agentNames, defaultAgent) {
     warning: `[swarm] default_agent '${value}' did not match any registered agent and no architect-role agents are registered; falling back to '${first}' as primary.`
   };
 }
-function getAgentConfigs(config3, directory, sessionId) {
-  const agents = createAgents(config3);
+function getAgentConfigs(config3, directory, sessionId, projectContext) {
+  const agents = createAgents(config3, projectContext ?? emptyProjectContext());
   const toolFilterEnabled = config3?.tool_filter?.enabled ?? true;
   const toolFilterOverrides = config3?.tool_filter?.overrides ?? {};
   const quiet = config3?.quiet ?? true;
@@ -68215,6 +68241,78 @@ var init_curator_drift = __esm(() => {
     writeDriftReport,
     runDeterministicDriftCheck,
     buildDriftInjectionText
+  };
+});
+
+// src/agents/project-context.ts
+var exports_project_context = {};
+__export(exports_project_context, {
+  buildProjectContext: () => buildProjectContext,
+  _internals: () => _internals39,
+  LANG_BACKEND_DETECTION_TIMEOUT_MS: () => LANG_BACKEND_DETECTION_TIMEOUT_MS
+});
+function selectLintCommand(backend, directory) {
+  const fs102 = __require("node:fs");
+  const path129 = __require("node:path");
+  const sorted = [...backend.lint.linters].sort((a, b) => b.priority - a.priority);
+  for (const lint2 of sorted) {
+    const detectFilePath = path129.join(directory, lint2.detect);
+    try {
+      fs102.accessSync(detectFilePath);
+    } catch {
+      continue;
+    }
+    const argv = lint2.cmd.split(/\s+/).filter(Boolean);
+    if (argv.length === 0)
+      continue;
+    if (!_internals39.isCommandAvailable(argv[0]))
+      continue;
+    return lint2.cmd;
+  }
+  return null;
+}
+async function buildProjectContext(directory) {
+  const backend = await _internals39.pickBackend(directory);
+  if (!backend)
+    return null;
+  const ctx = emptyProjectContext();
+  ctx.PROJECT_LANGUAGE = backend.displayName;
+  const buildSel = await backend.selectBuildCommand?.(directory);
+  if (buildSel) {
+    ctx.BUILD_CMD = buildSel.cmd.join(" ");
+  }
+  const testSel = await backend.selectTestFramework?.(directory);
+  if (testSel) {
+    ctx.TEST_CMD = testSel.cmd.join(" ");
+  }
+  const lintCmd = selectLintCommand(backend, directory);
+  if (lintCmd) {
+    ctx.LINT_CMD = lintCmd;
+  }
+  if (backend.prompts.coderConstraints.length > 0) {
+    ctx.CODER_CONSTRAINTS = bulletList(backend.prompts.coderConstraints);
+  }
+  if (backend.prompts.testConstraints && backend.prompts.testConstraints.length > 0) {
+    ctx.TEST_CONSTRAINTS = bulletList(backend.prompts.testConstraints);
+  }
+  if (backend.prompts.reviewerChecklist.length > 0) {
+    ctx.REVIEWER_CHECKLIST = bulletList(backend.prompts.reviewerChecklist);
+  }
+  const profiles = await _internals39.detectProjectLanguages(directory);
+  if (profiles.length > 1) {
+    ctx.PROJECT_CONTEXT_SECONDARY_LANGUAGES = profiles.slice(1).map((p) => p.id).join(", ");
+  }
+  return ctx;
+}
+var LANG_BACKEND_DETECTION_TIMEOUT_MS = 2000, _internals39;
+var init_project_context = __esm(() => {
+  init_discovery();
+  init_detector();
+  init_dispatch();
+  _internals39 = {
+    pickBackend,
+    detectProjectLanguages,
+    isCommandAvailable
   };
 });
 
@@ -98160,8 +98258,18 @@ async function initializeOpenCodeSwarm(ctx) {
       }
     });
   }
-  const agents = getAgentConfigs(config3, ctx.directory);
-  const agentDefinitions = createAgents(config3);
+  const projectContext = await withTimeout((async () => {
+    const mod = await Promise.resolve().then(() => (init_project_context(), exports_project_context));
+    return mod.buildProjectContext(ctx.directory);
+  })(), 2000, new Error("language-backend detection exceeded 2000ms; continuing with unresolved sentinels")).catch((err3) => {
+    const msg = err3 instanceof Error ? err3.message : String(err3);
+    log("language-backend detection timed out or failed (non-fatal)", {
+      error: msg
+    });
+    return null;
+  });
+  const agents = getAgentConfigs(config3, ctx.directory, undefined, projectContext ?? undefined);
+  const agentDefinitions = createAgents(config3, projectContext ?? undefined);
   swarmState.curatorInitAgentNames = Object.keys(agents).filter((k) => k === "curator_init" || k.endsWith("_curator_init"));
   swarmState.curatorPhaseAgentNames = Object.keys(agents).filter((k) => k === "curator_phase" || k.endsWith("_curator_phase"));
   swarmState.skillImproverAgentNames = Object.keys(agents).filter((k) => k === "skill_improver" || k.endsWith("_skill_improver"));
