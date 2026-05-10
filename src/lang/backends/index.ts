@@ -10,6 +10,8 @@
  */
 
 import { LANGUAGE_BACKEND_REGISTRY } from '../registry-backend';
+import { buildGoBackend } from './go';
+import { buildPythonBackend } from './python';
 import { buildTypescriptBackend } from './typescript';
 
 let registered = false;
@@ -27,6 +29,8 @@ let registered = false;
 export function registerAllBackends(): void {
 	if (registered) return;
 	LANGUAGE_BACKEND_REGISTRY.register(buildTypescriptBackend());
+	LANGUAGE_BACKEND_REGISTRY.register(buildPythonBackend());
+	LANGUAGE_BACKEND_REGISTRY.register(buildGoBackend());
 	registered = true;
 }
 
@@ -41,4 +45,6 @@ registerAllBackends();
 export function _resetForTesting(): void {
 	registered = false;
 	LANGUAGE_BACKEND_REGISTRY.unregister('typescript');
+	LANGUAGE_BACKEND_REGISTRY.unregister('python');
+	LANGUAGE_BACKEND_REGISTRY.unregister('go');
 }

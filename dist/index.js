@@ -53941,6 +53941,85 @@ var init_registry_backend = __esm(() => {
   LANGUAGE_BACKEND_REGISTRY = new LanguageBackendRegistry;
 });
 
+// src/lang/backends/go.ts
+function extractImports2(_sourceFile, source) {
+  const out2 = new Set;
+  IMPORT_REGEX_SINGLE.lastIndex = 0;
+  let m = IMPORT_REGEX_SINGLE.exec(source);
+  while (m !== null) {
+    out2.add(m[1]);
+    m = IMPORT_REGEX_SINGLE.exec(source);
+  }
+  IMPORT_REGEX_GROUP.lastIndex = 0;
+  m = IMPORT_REGEX_GROUP.exec(source);
+  while (m !== null) {
+    const block = m[1];
+    IMPORT_REGEX_GROUP_LINE.lastIndex = 0;
+    let inner = IMPORT_REGEX_GROUP_LINE.exec(block);
+    while (inner !== null) {
+      out2.add(inner[1]);
+      inner = IMPORT_REGEX_GROUP_LINE.exec(block);
+    }
+    m = IMPORT_REGEX_GROUP.exec(source);
+  }
+  return [...out2];
+}
+function buildGoBackend() {
+  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID);
+  if (!profile) {
+    throw new Error("buildGoBackend: go profile not in LANGUAGE_REGISTRY. " + "profiles.ts must be imported before this backend.");
+  }
+  return {
+    ...profile,
+    extractImports: extractImports2
+  };
+}
+var PROFILE_ID = "go", IMPORT_REGEX_SINGLE, IMPORT_REGEX_GROUP, IMPORT_REGEX_GROUP_LINE;
+var init_go = __esm(() => {
+  init_profiles();
+  IMPORT_REGEX_SINGLE = /^\s*import\s+(?:[a-zA-Z_.][a-zA-Z0-9_]*\s+)?"([^"]+)"/gm;
+  IMPORT_REGEX_GROUP = /^\s*import\s*\(([\s\S]*?)\)/gm;
+  IMPORT_REGEX_GROUP_LINE = /(?:[a-zA-Z_.][a-zA-Z0-9_]*\s+)?"([^"]+)"/g;
+});
+
+// src/lang/backends/python.ts
+function extractImports3(_sourceFile, source) {
+  const out2 = new Set;
+  IMPORT_REGEX_FROM.lastIndex = 0;
+  let m = IMPORT_REGEX_FROM.exec(source);
+  while (m !== null) {
+    out2.add(m[1]);
+    m = IMPORT_REGEX_FROM.exec(source);
+  }
+  IMPORT_REGEX_IMPORT.lastIndex = 0;
+  m = IMPORT_REGEX_IMPORT.exec(source);
+  while (m !== null) {
+    const modules = m[1].split(",").map((s) => s.trim().split(/\s+as\s+/)[0]);
+    for (const mod of modules) {
+      if (mod.length > 0)
+        out2.add(mod);
+    }
+    m = IMPORT_REGEX_IMPORT.exec(source);
+  }
+  return [...out2];
+}
+function buildPythonBackend() {
+  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID2);
+  if (!profile) {
+    throw new Error("buildPythonBackend: python profile not in LANGUAGE_REGISTRY. " + "profiles.ts must be imported before this backend.");
+  }
+  return {
+    ...profile,
+    extractImports: extractImports3
+  };
+}
+var PROFILE_ID2 = "python", IMPORT_REGEX_FROM, IMPORT_REGEX_IMPORT;
+var init_python = __esm(() => {
+  init_profiles();
+  IMPORT_REGEX_FROM = /^\s*from\s+([\w.]+)\s+import\s+/gm;
+  IMPORT_REGEX_IMPORT = /^\s*import\s+([\w.]+(?:\s*,\s*[\w.]+)*)/gm;
+});
+
 // src/lang/backends/typescript.ts
 import * as fs25 from "node:fs";
 import * as path40 from "node:path";
@@ -53990,7 +54069,7 @@ function selectionFromFramework(profile, fwName, dir, detectedVia) {
   };
 }
 async function selectTestFramework(dir) {
-  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID);
+  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID3);
   if (!profile)
     return null;
   const pkg = readPackageJson(dir);
@@ -54012,7 +54091,7 @@ async function selectTestFramework(dir) {
   return defaultSelectTestFramework(profile, dir);
 }
 function buildTestCommand(framework, files) {
-  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID);
+  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID3);
   if (!profile)
     return [];
   return defaultBuildTestCommand(profile, framework, files);
@@ -54020,7 +54099,7 @@ function buildTestCommand(framework, files) {
 function parseTestOutput(_framework, stdout, stderr, exitCode) {
   return defaultParseTestOutput(stdout, stderr, exitCode);
 }
-function extractImports2(_sourceFile, source) {
+function extractImports4(_sourceFile, source) {
   const out2 = new Set;
   for (const re of [
     IMPORT_REGEX_ES2,
@@ -54039,19 +54118,19 @@ function extractImports2(_sourceFile, source) {
   return [...out2];
 }
 async function selectBuildCommand(dir) {
-  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID);
+  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID3);
   if (!profile)
     return null;
   return defaultSelectBuildCommand(profile, dir);
 }
 async function testFilesFor(sourceFile, dir) {
-  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID);
+  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID3);
   if (!profile)
     return [];
   return defaultTestFilesFor(profile, sourceFile, dir);
 }
 function buildTypescriptBackend() {
-  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID);
+  const profile = LANGUAGE_REGISTRY.get(PROFILE_ID3);
   if (!profile) {
     throw new Error("buildTypescriptBackend: typescript profile not in LANGUAGE_REGISTRY. " + "profiles.ts must be imported before this backend.");
   }
@@ -54060,12 +54139,12 @@ function buildTypescriptBackend() {
     selectTestFramework,
     buildTestCommand,
     parseTestOutput,
-    extractImports: extractImports2,
+    extractImports: extractImports4,
     selectBuildCommand,
     testFilesFor
   };
 }
-var PROFILE_ID = "typescript", IMPORT_REGEX_ES2, IMPORT_REGEX_BARE, IMPORT_REGEX_REQUIRE2, IMPORT_REGEX_DYNAMIC, IMPORT_REGEX_REEXPORT2;
+var PROFILE_ID3 = "typescript", IMPORT_REGEX_ES2, IMPORT_REGEX_BARE, IMPORT_REGEX_REQUIRE2, IMPORT_REGEX_DYNAMIC, IMPORT_REGEX_REEXPORT2;
 var init_typescript = __esm(() => {
   init_default_backend();
   init_profiles();
@@ -54081,11 +54160,15 @@ function registerAllBackends() {
   if (registered)
     return;
   LANGUAGE_BACKEND_REGISTRY.register(buildTypescriptBackend());
+  LANGUAGE_BACKEND_REGISTRY.register(buildPythonBackend());
+  LANGUAGE_BACKEND_REGISTRY.register(buildGoBackend());
   registered = true;
 }
 var registered = false;
 var init_backends = __esm(() => {
   init_registry_backend();
+  init_go();
+  init_python();
   init_typescript();
   registerAllBackends();
 });
@@ -73713,7 +73796,7 @@ function parseRustUses(content) {
   }
   return out2;
 }
-function extractImports3(opts) {
+function extractImports5(opts) {
   const { absoluteFilePath, workspaceRoot } = opts;
   const ext = path67.extname(absoluteFilePath).toLowerCase();
   const language = getLanguageFromExtension(ext);
@@ -73914,7 +73997,7 @@ async function processFile(absoluteFilePath, workspaceRoot) {
     return null;
   }
   const relPath = path69.relative(workspaceRoot, absoluteFilePath).replace(/\\/g, "/");
-  const imports = extractImports3({
+  const imports = extractImports5({
     absoluteFilePath,
     workspaceRoot,
     content
