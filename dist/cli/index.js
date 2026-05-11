@@ -111,6 +111,9 @@ var init_package = __esm(() => {
       "web-tree-sitter": "^0.25.0",
       zod: "^4.1.8"
     },
+    optionalDependencies: {
+      "better-sqlite3": "^12.9.0"
+    },
     devDependencies: {
       "@biomejs/biome": "2.3.14",
       "@types/picomatch": "^4.0.3",
@@ -20168,17 +20171,46 @@ var init_archive = __esm(() => {
   init_utils();
 });
 
-// src/db/project-db.ts
-import { existsSync as existsSync5, mkdirSync as mkdirSync4 } from "fs";
+// src/db/database-loader.ts
 import { createRequire } from "module";
-import { join as join8, resolve as resolve5 } from "path";
 function loadDatabaseCtor() {
   if (_DatabaseCtor)
     return _DatabaseCtor;
   const req = createRequire(import.meta.url);
-  _DatabaseCtor = req("bun:sqlite").Database;
-  return _DatabaseCtor;
+  try {
+    const mod = req("bun:sqlite");
+    _DatabaseCtor = mod.Database;
+    return _DatabaseCtor;
+  } catch {
+    const BetterSqlite3 = req("better-sqlite3");
+
+    class BunCompatDatabase extends BetterSqlite3 {
+      run(sql, params) {
+        if (params === undefined) {
+          this.exec(sql);
+          return;
+        }
+        const paramArr = Array.isArray(params) ? params : [params];
+        if (paramArr.length === 0) {
+          this.exec(sql);
+          return;
+        }
+        return this.prepare(sql).run(...paramArr);
+      }
+      query(sql) {
+        return this.prepare(sql);
+      }
+    }
+    _DatabaseCtor = BunCompatDatabase;
+    return _DatabaseCtor;
+  }
 }
+var _DatabaseCtor = null;
+var init_database_loader = () => {};
+
+// src/db/project-db.ts
+import { existsSync as existsSync5, mkdirSync as mkdirSync4 } from "fs";
+import { join as join8, resolve as resolve5 } from "path";
 function runProjectMigrations(db) {
   db.run(`CREATE TABLE IF NOT EXISTS schema_migrations (
 		version INTEGER PRIMARY KEY,
@@ -20223,8 +20255,9 @@ function getProjectDb(directory) {
   _projectDbs.set(key, db);
   return db;
 }
-var _DatabaseCtor = null, MIGRATIONS, _projectDbs;
+var MIGRATIONS, _projectDbs;
 var init_project_db = __esm(() => {
+  init_database_loader();
   MIGRATIONS = [
     {
       version: 1,
