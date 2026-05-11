@@ -1494,6 +1494,10 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 				const normalized = normalizeToolName(_in.tool);
 				if (normalized !== 'Task' && normalized !== 'task') return;
 				const toolArgs = _out.args as Record<string, unknown> | undefined;
+				// DIAG: log hook entry + args.model state to determine hook ordering vs workload-router
+				console.error(
+					`[swarm-router-diag] hook fired tool=${normalized} subagent_type=${String(toolArgs?.subagent_type)} args.model=${JSON.stringify(toolArgs?.model)}`,
+				);
 				if (!toolArgs) return;
 				const modelArg = toolArgs.model;
 				if (
@@ -1513,6 +1517,9 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 				const modelStr = `${providerID}/${modelID}`;
 				// Apply to the full registered agent name (e.g. "cloud_coder")
 				const registeredConfig = agents[subagentType];
+				console.error(
+					`[swarm-router-diag] applying model=${modelStr} subagent=${subagentType} registered=${Boolean(registeredConfig)} baseName=${stripKnownSwarmPrefix(subagentType)}`,
+				);
 				if (registeredConfig) {
 					registeredConfig.model = modelStr;
 					if (typeof variant === 'string' && variant) {
