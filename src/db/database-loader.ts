@@ -1,15 +1,19 @@
 /**
  * Lazy Database constructor resolution shared by the project and global DBs.
  *
- * Prefers `bun:sqlite` (Bun built-in). Falls back to `better-sqlite3` when
- * running under Node (the case when OpenCode loads Swarm as a plugin inside
- * its Electron NodeService, where `bun:sqlite` does not exist).
+ * Resolution order:
+ *   1. `bun:sqlite`  — Bun built-in (preferred when running under Bun).
+ *   2. `node:sqlite` — Node built-in (stable in Node 22.5+, no native compile,
+ *                     no ABI-mismatch risk under Electron's bundled Node).
  *
- * The fallback returns a small shim class that implements the bun:sqlite-
- * shaped surface the rest of the codebase relies on (`db.run(sql, params?)`,
- * `db.query(sql)` returning a prepared statement with `.get`/`.all`/`.run`).
- * `db.transaction(fn)` and `db.close()` are provided by better-sqlite3 with
- * the same semantics.
+ * Both backends are wrapped to expose the bun:sqlite-shaped surface the rest
+ * of the codebase relies on:
+ *   - `new Db(path)`
+ *   - `db.run(sql, params?)`            — paramless DDL/PRAGMA goes through `exec`,
+ *                                         params go through `prepare(sql).run(...spread)`
+ *   - `db.query(sql)`                   — returns a prepared statement with .get/.all/.run
+ *   - `db.transaction(fn)`              — returns a callable that runs fn inside BEGIN/COMMIT/ROLLBACK
+ *   - `db.close()`
  */
 
 import type { Database } from 'bun:sqlite';
@@ -26,27 +30,68 @@ export function loadDatabaseCtor(): typeof Database {
 		_DatabaseCtor = mod.Database;
 		return _DatabaseCtor;
 	} catch {
-		// Node fallback — wrap better-sqlite3 with a bun:sqlite-compatible surface.
-		const BetterSqlite3 = req('better-sqlite3') as new (
-			path: string,
-			options?: Record<string, unknown>,
-		) => BetterSqliteDatabase;
+		// Node fallback — wrap node:sqlite (built-in, Node 22.5+ stable) with a
+		// bun:sqlite-compatible surface. No native compile, no ABI mismatch.
+		const NodeSqlite = req('node:sqlite') as {
+			DatabaseSync: new (
+				path: string,
+				options?: Record<string, unknown>,
+			) => NodeSqliteDatabase;
+		};
 
-		class BunCompatDatabase extends BetterSqlite3 {
+		class BunCompatDatabase {
+			private readonly _db: NodeSqliteDatabase;
+
+			constructor(path: string, options?: Record<string, unknown>) {
+				this._db = new NodeSqlite.DatabaseSync(path, options);
+			}
+
 			run(sql: string, params?: unknown[] | unknown): unknown {
 				if (params === undefined) {
-					this.exec(sql);
+					this._db.exec(sql);
 					return undefined;
 				}
 				const paramArr = Array.isArray(params) ? params : [params];
 				if (paramArr.length === 0) {
-					this.exec(sql);
+					this._db.exec(sql);
 					return undefined;
 				}
-				return this.prepare(sql).run(...paramArr);
+				return this._db.prepare(sql).run(...paramArr);
 			}
-			query(sql: string): BetterSqliteStatement {
-				return this.prepare(sql);
+
+			query(sql: string): NodeSqliteStatement {
+				return this._db.prepare(sql);
+			}
+
+			exec(sql: string): void {
+				this._db.exec(sql);
+			}
+
+			prepare(sql: string): NodeSqliteStatement {
+				return this._db.prepare(sql);
+			}
+
+			transaction<T extends (...args: unknown[]) => unknown>(fn: T): T {
+				const db = this._db;
+				return ((...args: unknown[]) => {
+					db.exec('BEGIN');
+					try {
+						const result = fn(...args);
+						db.exec('COMMIT');
+						return result;
+					} catch (err) {
+						try {
+							db.exec('ROLLBACK');
+						} catch {
+							// best-effort — original error is what matters
+						}
+						throw err;
+					}
+				}) as T;
+			}
+
+			close(): void {
+				this._db.close();
 			}
 		}
 
@@ -55,16 +100,14 @@ export function loadDatabaseCtor(): typeof Database {
 	}
 }
 
-interface BetterSqliteStatement {
+interface NodeSqliteStatement {
 	run(...params: unknown[]): unknown;
 	get(...params: unknown[]): unknown;
 	all(...params: unknown[]): unknown[];
 }
 
-interface BetterSqliteDatabase {
-	prepare(sql: string): BetterSqliteStatement;
+interface NodeSqliteDatabase {
+	prepare(sql: string): NodeSqliteStatement;
 	exec(sql: string): void;
-	transaction<T extends (...args: unknown[]) => unknown>(fn: T): T;
 	close(): void;
-	pragma(source: string): unknown;
 }

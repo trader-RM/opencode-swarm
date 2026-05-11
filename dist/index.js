@@ -110,9 +110,6 @@ var init_package = __esm(() => {
       "web-tree-sitter": "^0.25.0",
       zod: "^4.1.8"
     },
-    optionalDependencies: {
-      "better-sqlite3": "^12.9.0"
-    },
     devDependencies: {
       "@biomejs/biome": "2.3.14",
       "@types/picomatch": "^4.0.3",
@@ -20995,23 +20992,52 @@ function loadDatabaseCtor() {
     _DatabaseCtor = mod.Database;
     return _DatabaseCtor;
   } catch {
-    const BetterSqlite3 = req("better-sqlite3");
+    const NodeSqlite = req("node:sqlite");
 
-    class BunCompatDatabase extends BetterSqlite3 {
+    class BunCompatDatabase {
+      _db;
+      constructor(path9, options) {
+        this._db = new NodeSqlite.DatabaseSync(path9, options);
+      }
       run(sql, params) {
         if (params === undefined) {
-          this.exec(sql);
+          this._db.exec(sql);
           return;
         }
         const paramArr = Array.isArray(params) ? params : [params];
         if (paramArr.length === 0) {
-          this.exec(sql);
+          this._db.exec(sql);
           return;
         }
-        return this.prepare(sql).run(...paramArr);
+        return this._db.prepare(sql).run(...paramArr);
       }
       query(sql) {
-        return this.prepare(sql);
+        return this._db.prepare(sql);
+      }
+      exec(sql) {
+        this._db.exec(sql);
+      }
+      prepare(sql) {
+        return this._db.prepare(sql);
+      }
+      transaction(fn) {
+        const db = this._db;
+        return (...args2) => {
+          db.exec("BEGIN");
+          try {
+            const result = fn(...args2);
+            db.exec("COMMIT");
+            return result;
+          } catch (err2) {
+            try {
+              db.exec("ROLLBACK");
+            } catch {}
+            throw err2;
+          }
+        };
+      }
+      close() {
+        this._db.close();
       }
     }
     _DatabaseCtor = BunCompatDatabase;
