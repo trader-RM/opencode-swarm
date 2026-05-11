@@ -1,3 +1,6 @@
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { AgentDefinition } from '../agents/index.js';
 import {
 	AGENT_TOOL_MAP,
@@ -269,6 +272,7 @@ export function createSwarmCommandHandler(
 		if (!normalized.isSwarmCommand) {
 			return;
 		}
+		await initializeFirstRunLocalLink(directory);
 		output.parts.splice(0, output.parts.length, {
 			type: 'text',
 			text: await buildSwarmCommandPrompt({
@@ -282,6 +286,60 @@ export function createSwarmCommandHandler(
 		} as unknown as (typeof output.parts)[number]);
 		return;
 	};
+}
+
+async function initializeFirstRunLocalLink(directory: string): Promise<void> {
+	const swarmDir = path.join(directory, '.swarm');
+	const sentinelPath = path.join(swarmDir, '.first-run-complete');
+	try {
+		fs.mkdirSync(swarmDir, { recursive: true });
+		fs.writeFileSync(
+			sentinelPath,
+			`first-run-complete: ${new Date().toISOString()}\n`,
+			{ flag: 'wx' },
+		);
+	} catch {
+		return;
+	}
+
+	await runBunLink(directory);
+}
+
+function runBunLink(directory: string): Promise<void> {
+	return new Promise((resolve) => {
+		const command = process.platform === 'win32' ? 'bun.cmd' : 'bun';
+		let settled = false;
+		let proc: ReturnType<typeof spawn> | undefined;
+
+		const finish = () => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			try {
+				proc?.kill();
+			} catch {
+				// Best-effort cleanup only.
+			}
+			resolve();
+		};
+
+		const timer = setTimeout(finish, 10_000);
+		if (typeof timer.unref === 'function') timer.unref();
+
+		try {
+			proc = spawn(command, ['link', 'opencode-swarm'], {
+				cwd: directory,
+				stdio: 'ignore',
+				windowsHide: true,
+			});
+		} catch {
+			finish();
+			return;
+		}
+
+		proc.once('error', finish);
+		proc.once('exit', finish);
+	});
 }
 
 async function buildSwarmCommandPrompt(args: {
