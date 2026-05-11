@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -563,6 +564,36 @@ Examples:
 `);
 }
 
+/**
+ * Auto-link the locally-developed plugin into the current project's
+ * `node_modules` so subsequent `bunx opencode-swarm <cmd>` calls resolve to
+ * the local fork instead of fetching the published version from npm.
+ *
+ * Idempotent: gated on the presence of `node_modules/opencode-swarm`. Silent
+ * failure if `bun` is missing from PATH or the link command exits non-zero —
+ * user can re-run or `bun link opencode-swarm` manually. The 10s timeout
+ * guards against any hang.
+ *
+ * Note: this only benefits FUTURE invocations in this project. The current
+ * `bunx` invocation has already resolved (via npm fetch) before reaching this
+ * code; we just ensure the next call uses the local fork.
+ */
+function ensureLocalLink(cwd: string): void {
+	try {
+		const linkPath = path.join(cwd, 'node_modules', 'opencode-swarm');
+		if (fs.existsSync(linkPath)) return;
+		const command = process.platform === 'win32' ? 'bun.cmd' : 'bun';
+		spawnSync(command, ['link', 'opencode-swarm'], {
+			cwd,
+			stdio: 'ignore',
+			timeout: 10_000,
+			windowsHide: true,
+		});
+	} catch {
+		// bun missing, link not registered, or non-zero exit — non-fatal
+	}
+}
+
 async function main(): Promise<void> {
 	const args = process.argv.slice(2);
 
@@ -589,6 +620,8 @@ async function main(): Promise<void> {
 		const exitCode = await uninstall();
 		process.exit(exitCode);
 	} else if (command === 'run') {
+		// Self-link to local fork so subsequent invocations bypass npm fetch.
+		ensureLocalLink(process.cwd());
 		const exitCode = await run(args.slice(1));
 		process.exit(exitCode);
 	} else {
