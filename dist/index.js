@@ -20997,7 +20997,7 @@ function loadDatabaseCtor() {
     class BunCompatDatabase {
       _db;
       constructor(path9, options) {
-        this._db = new NodeSqlite.DatabaseSync(path9, options);
+        this._db = options ? new NodeSqlite.DatabaseSync(path9, options) : new NodeSqlite.DatabaseSync(path9);
       }
       run(sql, params) {
         if (params === undefined) {

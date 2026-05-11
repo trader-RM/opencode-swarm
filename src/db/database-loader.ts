@@ -43,7 +43,11 @@ export function loadDatabaseCtor(): typeof Database {
 			private readonly _db: NodeSqliteDatabase;
 
 			constructor(path: string, options?: Record<string, unknown>) {
-				this._db = new NodeSqlite.DatabaseSync(path, options);
+				// node:sqlite rejects `undefined` as the options arg (must be an object
+				// when provided). Omit the second arg entirely when caller didn't pass one.
+				this._db = options
+					? new NodeSqlite.DatabaseSync(path, options)
+					: new NodeSqlite.DatabaseSync(path);
 			}
 
 			run(sql: string, params?: unknown[] | unknown): unknown {
