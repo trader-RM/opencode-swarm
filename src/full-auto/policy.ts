@@ -22,6 +22,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { WRITE_TOOL_NAMES } from '../config/constants';
 
+const _knownPlanPaths = new Set<string>();
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -731,13 +733,14 @@ export function classifyFullAutoToolAction(
 	}
 	if (tool === 'save_plan') {
 		const planPath = path.join(input.directory, '.swarm', 'plan.json');
-		if (!fs.existsSync(planPath)) {
+		if (!_knownPlanPaths.has(planPath) && !fs.existsSync(planPath)) {
 			return {
 				action: 'allow',
 				reason: 'initial plan creation — no existing plan to mutate',
 				tier: 'local',
 			};
 		}
+		_knownPlanPaths.add(planPath);
 		return {
 			action: 'escalate_critic',
 			reason: 'plan mutation requires Full-Auto critic verification',

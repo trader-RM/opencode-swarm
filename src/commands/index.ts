@@ -306,6 +306,7 @@ async function initializeFirstRunLocalLink(directory: string): Promise<void> {
 }
 
 function runBunLink(directory: string): Promise<void> {
+	const _dbg = !!process.env.DEBUG_SWARM;
 	return new Promise((resolve) => {
 		const command = process.platform === 'win32' ? 'bun.cmd' : 'bun';
 		let settled = false;
@@ -323,7 +324,10 @@ function runBunLink(directory: string): Promise<void> {
 			resolve();
 		};
 
-		const timer = setTimeout(finish, 10_000);
+		const timer = setTimeout(() => {
+			if (_dbg) console.error('[swarm] bun link timed out after 10s');
+			finish();
+		}, 10_000);
 		if (typeof timer.unref === 'function') timer.unref();
 
 		try {
@@ -332,13 +336,20 @@ function runBunLink(directory: string): Promise<void> {
 				stdio: 'ignore',
 				windowsHide: true,
 			});
-		} catch {
+		} catch (spawnErr) {
+			if (_dbg) console.error('[swarm] bun link spawn failed:', spawnErr);
 			finish();
 			return;
 		}
 
-		proc.once('error', finish);
-		proc.once('exit', finish);
+		proc.once('error', (err: Error) => {
+			if (_dbg) console.error('[swarm] bun link spawn error:', err.message);
+			finish();
+		});
+		proc.once('exit', (code: number | null) => {
+			if (_dbg && code !== 0) console.error(`[swarm] bun link exited with code ${code}`);
+			finish();
+		});
 	});
 }
 

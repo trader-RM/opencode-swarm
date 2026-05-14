@@ -32,12 +32,20 @@ export function loadDatabaseCtor(): typeof Database {
 	} catch {
 		// Node fallback — wrap node:sqlite (built-in, Node 22.5+ stable) with a
 		// bun:sqlite-compatible surface. No native compile, no ABI mismatch.
-		const NodeSqlite = req('node:sqlite') as {
+		let NodeSqlite: {
 			DatabaseSync: new (
 				path: string,
 				options?: Record<string, unknown>,
 			) => NodeSqliteDatabase;
 		};
+		try {
+			NodeSqlite = req('node:sqlite') as typeof NodeSqlite;
+		} catch {
+			throw new Error(
+				'Neither bun:sqlite nor node:sqlite is available. ' +
+				'Requires Bun runtime or Node.js >= 22.5.',
+			);
+		}
 
 		class BunCompatDatabase {
 			private readonly _db: NodeSqliteDatabase;

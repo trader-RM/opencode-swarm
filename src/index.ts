@@ -894,6 +894,18 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 		},
 	});
 
+	// Snapshot for workload-router model restore (sequential single-swarm only).
+	// Both tool.execute.before and tool.execute.after close over this variable.
+	let _workloadRouterSnapshot:
+		| {
+				subagentType: string;
+				baseName: string;
+				registeredModel: string | undefined;
+				baseModel: string | undefined;
+				swarmModel: string | undefined;
+		  }
+		| undefined;
+
 	return {
 		name: 'opencode-swarm',
 
@@ -1493,11 +1505,12 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 			await safeHook(async (_in: any, _out: any) => {
 				const normalized = normalizeToolName(_in.tool);
 				if (normalized !== 'Task' && normalized !== 'task') return;
+				const _dbg = !!process.env.DEBUG_SWARM;
 				const toolArgs = _out.args as Record<string, unknown> | undefined;
-				// DIAG: log hook entry + args.model state to determine hook ordering vs workload-router
-				console.error(
-					`[swarm-router-diag] hook fired tool=${normalized} subagent_type=${String(toolArgs?.subagent_type)} args.model=${JSON.stringify(toolArgs?.model)}`,
-				);
+				if (_dbg)
+					console.error(
+						`[swarm-router-diag] hook fired tool=${normalized} subagent_type=${String(toolArgs?.subagent_type)} args.model=${JSON.stringify(toolArgs?.model)}`,
+					);
 				if (!toolArgs) return;
 				const modelArg = toolArgs.model;
 				if (
@@ -1517,9 +1530,23 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 				const modelStr = `${providerID}/${modelID}`;
 				// Apply to the full registered agent name (e.g. "cloud_coder")
 				const registeredConfig = agents[subagentType];
-				console.error(
-					`[swarm-router-diag] applying model=${modelStr} subagent=${subagentType} registered=${Boolean(registeredConfig)} baseName=${stripKnownSwarmPrefix(subagentType)}`,
-				);
+				const baseName = stripKnownSwarmPrefix(subagentType);
+				if (_dbg)
+					console.error(
+						`[swarm-router-diag] applying model=${modelStr} subagent=${subagentType} registered=${Boolean(registeredConfig)} baseName=${baseName}`,
+					);
+				// Snapshot original values before mutation so tool.execute.after can restore
+				const swarmAgentsCfg = getSwarmAgents();
+				_workloadRouterSnapshot = {
+					subagentType,
+					baseName,
+					registeredModel: registeredConfig?.model,
+					baseModel:
+						baseName !== subagentType
+							? agents[baseName]?.model
+							: undefined,
+					swarmModel: swarmAgentsCfg?.[baseName]?.model,
+				};
 				if (registeredConfig) {
 					registeredConfig.model = modelStr;
 					if (typeof variant === 'string' && variant) {
@@ -1527,7 +1554,6 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 					}
 				}
 				// Also apply to the base name if different (e.g. "coder")
-				const baseName = stripKnownSwarmPrefix(subagentType);
 				if (baseName !== subagentType) {
 					const baseConfig = agents[baseName];
 					if (baseConfig) {
@@ -1538,7 +1564,6 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 					}
 				}
 				// Mirror update to _swarmAgents for internal state consistency
-				const swarmAgentsCfg = getSwarmAgents();
 				if (swarmAgentsCfg) {
 					const agentCfg = swarmAgentsCfg[baseName];
 					if (agentCfg) agentCfg.model = modelStr;
@@ -1565,6 +1590,31 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 
 			const normalizedTool = normalizeToolName(input.tool);
 			const isTaskTool = normalizedTool === 'Task' || normalizedTool === 'task';
+
+			// Restore agent model config overridden by workload-router in tool.execute.before
+			if (isTaskTool && _workloadRouterSnapshot) {
+				try {
+					const snap = _workloadRouterSnapshot;
+					_workloadRouterSnapshot = undefined;
+					const regCfg = agents[snap.subagentType];
+					if (regCfg && snap.registeredModel !== undefined) regCfg.model = snap.registeredModel;
+					if (snap.baseName !== snap.subagentType) {
+						const baseCfg = agents[snap.baseName];
+						if (baseCfg && snap.baseModel !== undefined) baseCfg.model = snap.baseModel;
+					}
+					const swCfg = getSwarmAgents();
+					if (swCfg) {
+						const agCfg = swCfg[snap.baseName];
+						if (agCfg && snap.swarmModel !== undefined) agCfg.model = snap.swarmModel;
+					}
+					if (_dbg)
+						console.error(
+							`[swarm-router-diag] restored model for ${snap.subagentType} → registered=${snap.registeredModel} base=${snap.baseModel} swarm=${snap.swarmModel}`,
+						);
+				} catch (restoreErr) {
+					if (_dbg) console.error('[swarm-router-diag] restore failed:', restoreErr);
+				}
+			}
 
 			const hookChain = async (): Promise<void> => {
 				await activityHooks.toolAfter(input, output);
