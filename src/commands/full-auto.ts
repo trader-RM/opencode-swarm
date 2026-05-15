@@ -4,7 +4,7 @@ import {
 	startFullAutoRun,
 	terminateFullAutoRun,
 } from '../full-auto/state';
-import { getAgentSession, swarmState } from '../state';
+import { ensureAgentSession, swarmState } from '../state';
 import * as logger from '../utils/logger';
 
 /**
@@ -37,11 +37,8 @@ export async function handleFullAutoCommand(
 		return 'Error: No active session context. Full-Auto Mode requires an active session. Use /swarm-full-auto from within an OpenCode session, or start a session first.';
 	}
 
-	// Validate session exists
-	const session = getAgentSession(sessionID);
-	if (!session) {
-		return 'Error: No active session. Full-Auto Mode requires an active session to operate.';
-	}
+	// Ensure session exists (create if missing — command fires before chat.message bootstrap)
+	const session = ensureAgentSession(sessionID, undefined, directory);
 
 	// Parse the argument
 	const arg = args[0]?.toLowerCase();

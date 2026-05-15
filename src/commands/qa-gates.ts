@@ -24,7 +24,7 @@ import {
 } from '../db/qa-gate-profile.js';
 import { loadPlanJsonOnly } from '../plan/manager.js';
 import { derivePlanId } from '../plan/utils.js';
-import { getAgentSession } from '../state.js';
+import { ensureAgentSession, getAgentSession } from '../state.js';
 
 const ALL_GATE_NAMES: ReadonlyArray<keyof QaGates> = [
 	'reviewer',
@@ -134,10 +134,7 @@ export async function handleQaGatesCommand(
 		if (invalid.length > 0) {
 			return `Error: unknown gate(s): ${invalid.join(', ')}. Valid gates: ${ALL_GATE_NAMES.join(', ')}`;
 		}
-		const session = getAgentSession(sessionID);
-		if (!session) {
-			return 'Error: no active session found for override.';
-		}
+		const session = ensureAgentSession(sessionID, undefined, directory);
 		const current = session.qaGateSessionOverrides ?? {};
 		const next: Partial<QaGates> = { ...current };
 		for (const g of gateArgs) {

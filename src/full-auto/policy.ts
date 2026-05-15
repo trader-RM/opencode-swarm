@@ -20,9 +20,10 @@
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { WRITE_TOOL_NAMES } from '../config/constants';
+import { WRITE_TOOL_NAMES, type WriteToolName } from '../config/constants';
 
 const _knownPlanPaths = new Set<string>();
+const _knownSpecPaths = new Set<string>();
 
 // ---------------------------------------------------------------------------
 // Types
@@ -151,6 +152,7 @@ const WRITE_LIKE_TOOLS = new Set<string>([
 	'knowledge_add',
 	'knowledge_remove',
 	'curator_analyze',
+	'spec_write',
 	'suggest_patch',
 ]);
 
@@ -830,6 +832,44 @@ export function classifyFullAutoToolAction(
 				return {
 					action: 'allow',
 					reason: `pathless plan/evidence tool '${tool}' allowed under Full-Auto`,
+					tier: 'local',
+				};
+			}
+			// spec_write initial-creation bypass (same pattern as save_plan M3 fix):
+			// the critic cannot verify a file that hasn't been written yet — allow
+			// initial creation when no spec exists, escalate mutations.
+			if (tool === 'spec_write') {
+				const specPath = path.join(input.directory, '.swarm', 'spec.md');
+				if (!_knownSpecPaths.has(specPath) && !fs.existsSync(specPath)) {
+					_knownSpecPaths.add(specPath);
+					return {
+						action: 'allow',
+						reason: 'initial spec creation — no existing spec to mutate',
+						tier: 'local',
+					};
+				}
+				return {
+					action: 'escalate_critic',
+					reason: 'spec mutation requires Full-Auto critic verification',
+					risk: 'medium',
+					context: { tool },
+				};
+			}
+			// Pathless native write tool (write, edit, patch, etc.):
+			// Allow rather than escalating to critic. The critic runs
+			// pre-execution and cannot verify a write that hasn't happened
+			// yet — it either rejects because the file doesn't exist (initial
+			// creation) or because the content hasn't changed (mutation).
+			// This causes denial loops that block the planning pipeline.
+			// Safety relies on the host sandbox (Claude Code / OpenCode)
+			// which enforces project-root containment for native write tools.
+			// NOTE: if a future tool uses a path arg key not in PATH_ARG_KEYS,
+			// it would bypass the path-validation logic below. If that becomes
+			// a concern, broaden PATH_ARG_KEYS or scan all string args.
+			if (WRITE_TOOL_NAMES.includes(tool as WriteToolName)) {
+				return {
+					action: 'allow',
+					reason: 'native write tool with unresolvable path — host sandbox enforces containment',
 					tier: 'local',
 				};
 			}

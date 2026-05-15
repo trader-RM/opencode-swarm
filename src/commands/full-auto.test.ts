@@ -73,16 +73,19 @@ describe('handleFullAutoCommand', () => {
 		return session;
 	}
 
-	describe('Error Path - No Active Session', () => {
-		it('returns error message when no session exists', async () => {
+	describe('Session Bootstrap - Missing Session Auto-Created', () => {
+		it('bootstraps session and succeeds when session does not yet exist', async () => {
+			const nonExistentId = 'non-existent-session';
 			const result = await handleFullAutoCommand(
 				'/project',
-				[],
-				'non-existent-session',
+				['on'],
+				nonExistentId,
 			);
-			expect(result).toBe(
-				'Error: No active session. Full-Auto Mode requires an active session to operate.',
-			);
+			// ensureAgentSession creates the session on the fly, so the command proceeds
+			// past the session check (may include v2 detail suffix)
+			expect(result).toContain('Full-Auto Mode enabled');
+			// Clean up the auto-created session
+			swarmState.agentSessions.delete(nonExistentId);
 		});
 	});
 
@@ -93,7 +96,7 @@ describe('handleFullAutoCommand', () => {
 				['on'],
 				testSessionId,
 			);
-			expect(result).toBe('Full-Auto Mode enabled');
+			expect(result).toContain('Full-Auto Mode enabled');
 			expect(getSession().fullAutoMode).toBe(true);
 		});
 
@@ -103,7 +106,7 @@ describe('handleFullAutoCommand', () => {
 				['ON'],
 				testSessionId,
 			);
-			expect(result).toBe('Full-Auto Mode enabled');
+			expect(result).toContain('Full-Auto Mode enabled');
 			expect(getSession().fullAutoMode).toBe(true);
 		});
 	});
@@ -116,7 +119,7 @@ describe('handleFullAutoCommand', () => {
 				['off'],
 				testSessionId,
 			);
-			expect(result).toBe('Full-Auto Mode disabled');
+			expect(result).toContain('Full-Auto Mode disabled');
 			expect(getSession().fullAutoMode).toBe(false);
 		});
 
@@ -127,7 +130,7 @@ describe('handleFullAutoCommand', () => {
 				['OFF'],
 				testSessionId,
 			);
-			expect(result).toBe('Full-Auto Mode disabled');
+			expect(result).toContain('Full-Auto Mode disabled');
 			expect(getSession().fullAutoMode).toBe(false);
 		});
 	});
@@ -136,14 +139,14 @@ describe('handleFullAutoCommand', () => {
 		it('toggles full-auto mode from off to on when no argument provided', async () => {
 			getSession().fullAutoMode = false;
 			const result = await handleFullAutoCommand('/project', [], testSessionId);
-			expect(result).toBe('Full-Auto Mode enabled');
+			expect(result).toContain('Full-Auto Mode enabled');
 			expect(getSession().fullAutoMode).toBe(true);
 		});
 
 		it('toggles full-auto mode from on to off when no argument provided', async () => {
 			getSession().fullAutoMode = true;
 			const result = await handleFullAutoCommand('/project', [], testSessionId);
-			expect(result).toBe('Full-Auto Mode disabled');
+			expect(result).toContain('Full-Auto Mode disabled');
 			expect(getSession().fullAutoMode).toBe(false);
 		});
 
@@ -154,7 +157,7 @@ describe('handleFullAutoCommand', () => {
 				[''],
 				testSessionId,
 			);
-			expect(result).toBe('Full-Auto Mode enabled');
+			expect(result).toContain('Full-Auto Mode enabled');
 			expect(getSession().fullAutoMode).toBe(true);
 		});
 	});
@@ -167,7 +170,7 @@ describe('handleFullAutoCommand', () => {
 				['on', 'extra', 'ignored'],
 				testSessionId,
 			);
-			expect(result).toBe('Full-Auto Mode enabled');
+			expect(result).toContain('Full-Auto Mode enabled');
 			expect(getSession().fullAutoMode).toBe(true);
 		});
 
@@ -178,7 +181,7 @@ describe('handleFullAutoCommand', () => {
 				['invalid'],
 				testSessionId,
 			);
-			expect(result).toBe('Full-Auto Mode enabled');
+			expect(result).toContain('Full-Auto Mode enabled');
 			expect(getSession().fullAutoMode).toBe(true);
 		});
 
@@ -186,14 +189,13 @@ describe('handleFullAutoCommand', () => {
 			const session = getSession();
 			const originalAgentName = session.agentName;
 			const originalDelegationActive = session.delegationActive;
-			const originalLastToolCallTime = session.lastToolCallTime;
 			const originalTurboMode = session.turboMode;
 
 			await handleFullAutoCommand('/project', ['on'], testSessionId);
 
 			expect(session.agentName).toBe(originalAgentName);
 			expect(session.delegationActive).toBe(originalDelegationActive);
-			expect(session.lastToolCallTime).toBe(originalLastToolCallTime);
+			// Note: lastToolCallTime is updated by ensureAgentSession (expected)
 			expect(session.turboMode).toBe(originalTurboMode);
 		});
 	});

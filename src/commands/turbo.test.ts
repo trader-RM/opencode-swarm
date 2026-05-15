@@ -84,17 +84,18 @@ describe('handleTurboCommand', () => {
 		return session;
 	}
 
-	describe('Error Path - No Active Session', () => {
-		it('returns error message when no session exists', async () => {
+	describe('Session Bootstrap - Missing Session Auto-Created', () => {
+		it('bootstraps session and succeeds when session does not yet exist', async () => {
+			const nonExistentId = 'non-existent-session';
 			const result = await handleTurboCommand(
 				'/project',
 				[],
-				'non-existent-session',
+				nonExistentId,
 			);
-
-			expect(result).toBe(
-				'Error: No active session. Turbo Mode requires an active session to operate.',
-			);
+			// ensureAgentSession creates the session on the fly, so the command proceeds
+			expect(result).toBe('Turbo Mode enabled');
+			// Clean up the auto-created session
+			swarmState.agentSessions.delete(nonExistentId);
 		});
 	});
 
@@ -210,13 +211,12 @@ describe('handleTurboCommand', () => {
 			const session = getSession();
 			const originalAgentName = session.agentName;
 			const originalDelegationActive = session.delegationActive;
-			const originalLastToolCallTime = session.lastToolCallTime;
 
 			await handleTurboCommand('/project', ['on'], testSessionId);
 
 			expect(session.agentName).toBe(originalAgentName);
 			expect(session.delegationActive).toBe(originalDelegationActive);
-			expect(session.lastToolCallTime).toBe(originalLastToolCallTime);
+			// Note: lastToolCallTime is updated by ensureAgentSession (expected)
 		});
 	});
 

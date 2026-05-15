@@ -94,17 +94,24 @@ describe('handleFullAutoCommand - Empty SessionID Handling', () => {
 	});
 
 	describe('Empty SessionID vs Non-Existent SessionID Distinction', () => {
-		it('returns different error message for empty sessionID vs non-existent session', async () => {
+		it('empty sessionID hits CLI guard while non-existent sessionID bootstraps past session check', async () => {
 			const emptyResult = await handleFullAutoCommand('/project', [], '');
+			const nonExistentId = 'this-session-definitely-does-not-exist-12345';
 			const nonExistentResult = await handleFullAutoCommand(
 				'/project',
 				[],
-				'this-session-definitely-does-not-exist-12345',
+				nonExistentId,
 			);
 
-			expect(emptyResult).not.toBe(nonExistentResult);
+			// Empty sessionID hits the CLI context guard (first check)
 			expect(emptyResult).toContain('active session context');
+			// Non-existent sessionID bootstraps via ensureAgentSession — does NOT hit
+			// the session-related errors. It may hit later gates (e.g. config gate)
+			// but the session itself was created successfully.
 			expect(nonExistentResult).not.toContain('active session context');
+			expect(nonExistentResult).not.toContain('No active session');
+			// Clean up auto-created session
+			swarmState.agentSessions.delete(nonExistentId);
 		});
 	});
 

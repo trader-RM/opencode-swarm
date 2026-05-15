@@ -151,15 +151,17 @@ describe('Task 4: Turbo Mode Regression Tests', () => {
 			expect(session?.turboMode).toBe(false);
 		});
 
-		it('1.5 turbo command without session returns error message', async () => {
+		it('1.5 turbo command without pre-existing session bootstraps and succeeds', async () => {
+			const nonExistentId = 'nonexistent-session';
 			const result = await handleTurboCommand(
 				'/test',
 				[],
-				'nonexistent-session',
+				nonExistentId,
 			);
-
-			expect(result).toContain('Error');
-			expect(result).toContain('No active session');
+			// ensureAgentSession creates the session on the fly
+			expect(result).toBe('Turbo Mode enabled');
+			// Clean up
+			swarmState.agentSessions.delete(nonExistentId);
 		});
 	});
 

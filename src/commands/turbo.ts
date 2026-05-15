@@ -1,5 +1,5 @@
 import { loadPluginConfigWithMeta } from '../config';
-import { getAgentSession } from '../state';
+import { ensureAgentSession, type AgentSessionState } from '../state';
 import {
 	emptyRunState,
 	isStateUnreadable,
@@ -41,11 +41,8 @@ export async function handleTurboCommand(
 		return 'Error: No active session context. Turbo Mode requires an active session. Use /swarm turbo from within an OpenCode session, or start a session first.';
 	}
 
-	// Validate session exists
-	const session = getAgentSession(sessionID);
-	if (!session) {
-		return 'Error: No active session. Turbo Mode requires an active session to operate.';
-	}
+	// Ensure session exists (create if missing — command fires before chat.message bootstrap)
+	const session = ensureAgentSession(sessionID, undefined, directory);
 
 	// Parse arguments
 	const arg0 = args[0]?.toLowerCase();
@@ -184,7 +181,7 @@ export async function handleTurboCommand(
  * Creates durable run state before flipping session flags (fail-closed pattern).
  */
 function enableLeanTurbo(
-	session: NonNullable<ReturnType<typeof getAgentSession>>,
+	session: AgentSessionState,
 	directory: string,
 	sessionID: string,
 ): string {
@@ -245,7 +242,7 @@ function enableLeanTurbo(
  * Builds the status message for turbo mode.
  */
 function buildStatusMessage(
-	session: NonNullable<ReturnType<typeof getAgentSession>>,
+	session: AgentSessionState,
 	directory: string,
 	sessionID: string,
 ): string {
