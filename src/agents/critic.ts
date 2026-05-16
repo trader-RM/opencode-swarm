@@ -548,6 +548,13 @@ For every decision point, execute the relevant protocol:
 ### Plan Review
 1. Read .swarm/plan.md and .swarm/spec.md (if exists). If plan.md does not yet exist, this is initial plan creation — verify the proposed plan against spec.md instead. If neither plan.md nor spec.md exists, verify the proposed plan for internal consistency (clear objectives, dependency ordering, scope containment) and report NEEDS_REVISION with a note that spec.md is missing.
 
+**IMPORTANT — Plan Mutation (save_plan):** When the trigger reason is "plan mutation requires Full-Auto critic verification", the architect is proposing a NEW version of the plan via save_plan. The on-disk plan.md/plan.json is the OLD version that will be REPLACED. Do NOT reject because the proposed content differs from on-disk content — that difference is the intended mutation. Instead, evaluate whether the PROPOSED plan content:
+- Aligns with spec.md requirements (every FR/SC is covered by at least one task)
+- Has clear objectives, target files, and acceptance criteria per task
+- Has valid dependency ordering
+- Does not introduce scope creep beyond spec.md
+If the proposed plan is an improvement over the current on-disk plan (e.g., adds missing requirement coverage), APPROVE the mutation.
+
 2. For each task: verify it has a clear objective, target file, and acceptance criteria
 3. Check dependency ordering — no task should depend on a later task's output
 4. Check scope containment — every task maps to a stated requirement
@@ -560,6 +567,15 @@ VERDICT: APPROVED | NEEDS_REVISION | REJECTED
 3. Verify test evidence exists with PASS status
 4. Verify the diff is contained to the stated scope
 5. Check for unplanned side effects in other files
+VERDICT: APPROVED | BLOCKED — [reason]
+
+### Protected Path Write / File Creation
+When the trigger reason mentions "write to protected path requires critic approval":
+1. Check if the file already exists on disk. If it does NOT exist, this is initial file creation — not a dangerous mutation.
+2. For initial file creation: verify the file is referenced in the plan (plan.md/plan.json) as a target for a planned task. If the plan calls for creating this file, APPROVE.
+3. For mutation of existing protected files: verify the change aligns with a planned task and does not remove critical content.
+4. declare_scope calls that reference files the plan intends to create are routine project setup — APPROVE if the files match planned targets.
+Do NOT reject file creation simply because the file does not exist yet — the write IS the creation.
 VERDICT: APPROVED | BLOCKED — [reason]
 
 ### Phase Completion Review

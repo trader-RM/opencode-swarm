@@ -220,6 +220,14 @@ function buildOversightPrompt(input: DispatchFullAutoOversightInput): string {
 	const ctxBlock = ctxJSON
 		? `\n\n### ACTION CONTEXT (untrusted; verify with read-only tools)\n\`\`\`json\n${ctxJSON.length > 3000 ? `${ctxJSON.slice(0, 3000)}\n... [truncated]` : ctxJSON}\n\`\`\``
 		: '';
+
+	// Add mutation-aware guidance when the tool is a state-changing operation
+	const toolName = actionContext?.tool as string | undefined;
+	const isMutation = toolName === 'save_plan' || toolName === 'spec_write';
+	const mutationHint = isMutation
+		? `\n\n### MUTATION CONTEXT\nThis is a ${toolName} call — the architect is proposing NEW content to REPLACE what is currently on disk. The ARCHITECT OUTPUT above contains the PROPOSED new content. Do NOT reject simply because it differs from the current on-disk version — that difference IS the intended mutation. Instead evaluate whether the proposed content is spec-aligned, well-structured, and an improvement.`
+		: '';
+
 	return [
 		'## FULL-AUTO V2 OVERSIGHT REQUEST',
 		`trigger_source: ${triggerSource}`,
@@ -228,6 +236,7 @@ function buildOversightPrompt(input: DispatchFullAutoOversightInput): string {
 		taskID ? `task_id: ${taskID}` : '',
 		archBlock,
 		ctxBlock,
+		mutationHint,
 		'',
 		'### YOUR TASK',
 		'Verify the action above using read-only tools only. Do not edit, write, or patch.',
