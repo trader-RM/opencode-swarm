@@ -90,7 +90,7 @@ function getModelForAgent(
 	>,
 	swarmPrefix?: string,
 	quiet?: boolean,
-): string {
+): string | undefined {
 	// Strip the user-configured swarm prefix to get the canonical role
 	// (e.g., "banana_coder" with swarmPrefix="banana" -> "coder").
 	const baseAgentName = stripSwarmPrefix(agentName, swarmPrefix);
@@ -98,6 +98,8 @@ function getModelForAgent(
 	// 1. Check explicit override
 	const explicit = swarmAgents?.[baseAgentName]?.model;
 	if (typeof explicit === 'string' && explicit.length > 0) return explicit;
+	// Empty string means "no explicit model set — let the runtime/router decide"
+	if (typeof explicit === 'string') return undefined;
 
 	// NOTE: fallback_models resolution happens at runtime in guardrails (toolAfter),
 	// not here. getModelForAgent runs once at agent creation. The guardrails hook
@@ -327,6 +329,10 @@ function createSwarmAgents(
 	const getModel = (baseName: string) =>
 		getModelForAgent(baseName, swarmAgents, swarmPrefix, quiet);
 
+	// Normalize empty-string model overrides to undefined so ?? falls through
+	const modelOrUndefined = (m: string | undefined): string | undefined =>
+		typeof m === 'string' && m.length > 0 ? m : undefined;
+
 	// Helper to load custom prompts
 	const getPrompts = (name: string) => loadAgentPrompt(name);
 
@@ -463,7 +469,7 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
 	// 5b. Create Critic Sounding Board
 	if (!isAgentDisabled('critic_sounding_board', swarmAgents, swarmPrefix)) {
 		const critic = createCriticAgent(
-			swarmAgents?.critic_sounding_board?.model ?? getModel('critic'),
+			modelOrUndefined(swarmAgents?.critic_sounding_board?.model) ?? getModel('critic'),
 			undefined,
 			undefined,
 			'sounding_board' as CriticRole,
@@ -475,7 +481,7 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
 	// 5c. Create Critic Drift Verifier
 	if (!isAgentDisabled('critic_drift_verifier', swarmAgents, swarmPrefix)) {
 		const critic = createCriticAgent(
-			swarmAgents?.critic_drift_verifier?.model ?? getModel('critic'),
+			modelOrUndefined(swarmAgents?.critic_drift_verifier?.model) ?? getModel('critic'),
 			undefined,
 			undefined,
 			'phase_drift_verifier' as CriticRole,
@@ -489,7 +495,7 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
 		!isAgentDisabled('critic_hallucination_verifier', swarmAgents, swarmPrefix)
 	) {
 		const critic = createCriticAgent(
-			swarmAgents?.critic_hallucination_verifier?.model ?? getModel('critic'),
+			modelOrUndefined(swarmAgents?.critic_hallucination_verifier?.model) ?? getModel('critic'),
 			undefined,
 			undefined,
 			'hallucination_verifier' as CriticRole,
@@ -501,7 +507,7 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
 	// 5d. Create Critic Autonomous Oversight
 	if (!isAgentDisabled('critic_oversight', swarmAgents, swarmPrefix)) {
 		const critic = createCriticAutonomousOversightAgent(
-			swarmAgents?.critic_oversight?.model ?? getModel('critic'),
+			modelOrUndefined(swarmAgents?.critic_oversight?.model) ?? getModel('critic'),
 		);
 		critic.name = prefixName('critic_oversight');
 		agents.push(applyOverrides(critic, swarmAgents, swarmPrefix, quiet));
@@ -511,7 +517,7 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
 	if (!isAgentDisabled('curator_init', swarmAgents, swarmPrefix)) {
 		const curatorInitPrompts = getPrompts('curator_init');
 		const curatorInit = createCuratorAgent(
-			swarmAgents?.curator_init?.model ?? getModel('explorer'),
+			modelOrUndefined(swarmAgents?.curator_init?.model) ?? getModel('explorer'),
 			curatorInitPrompts.prompt,
 			curatorInitPrompts.appendPrompt,
 			'curator_init' as CuratorRole,
@@ -524,7 +530,7 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
 	if (!isAgentDisabled('curator_phase', swarmAgents, swarmPrefix)) {
 		const curatorPhasePrompts = getPrompts('curator_phase');
 		const curatorPhase = createCuratorAgent(
-			swarmAgents?.curator_phase?.model ?? getModel('explorer'),
+			modelOrUndefined(swarmAgents?.curator_phase?.model) ?? getModel('explorer'),
 			curatorPhasePrompts.prompt,
 			curatorPhasePrompts.appendPrompt,
 			'curator_phase' as CuratorRole,
@@ -539,7 +545,7 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
 	if (!isAgentDisabled('skill_improver', swarmAgents, swarmPrefix)) {
 		const sip = getPrompts('skill_improver');
 		const skillImprover = createSkillImproverAgent(
-			swarmAgents?.skill_improver?.model ?? getModel('skill_improver'),
+			modelOrUndefined(swarmAgents?.skill_improver?.model) ?? getModel('skill_improver'),
 			sip.prompt,
 			sip.appendPrompt,
 		);
@@ -551,7 +557,7 @@ If you call @coder instead of @${swarmId}_coder, the call will FAIL or go to the
 	if (!isAgentDisabled('spec_writer', swarmAgents, swarmPrefix)) {
 		const sw = getPrompts('spec_writer');
 		const specWriter = createSpecWriterAgent(
-			swarmAgents?.spec_writer?.model ?? getModel('spec_writer'),
+			modelOrUndefined(swarmAgents?.spec_writer?.model) ?? getModel('spec_writer'),
 			sw.prompt,
 			sw.appendPrompt,
 		);

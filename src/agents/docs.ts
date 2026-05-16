@@ -108,7 +108,7 @@ SUMMARY: [one-line description of doc changes]
 `;
 
 export function createDocsAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 ): AgentDefinition {

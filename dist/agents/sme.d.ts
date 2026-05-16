@@ -1,2 +1,2 @@
 import type { AgentDefinition } from './architect';
-export declare function createSMEAgent(model: string, customPrompt?: string, customAppendPrompt?: string): AgentDefinition;
+export declare function createSMEAgent(model: string | undefined, customPrompt?: string, customAppendPrompt?: string): AgentDefinition;

@@ -239,7 +239,7 @@ META.SUMMARY CONVENTION — When reporting task completion, include:
 `;
 
 export function createCoderAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 ): AgentDefinition {

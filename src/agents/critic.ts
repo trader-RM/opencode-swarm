@@ -625,7 +625,7 @@ ANTI_PATTERNS_DETECTED: [list or "none"]
 ESCALATION_NEEDED: YES | NO`;
 
 export function createCriticAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 	role: CriticRole = 'plan_critic',
@@ -728,7 +728,7 @@ export function createCriticDriftVerifierAgent(
  * different prompt — the autonomous oversight agent is the sole quality gate in full-auto mode.
  */
 export function createCriticAutonomousOversightAgent(
-	model: string,
+	model: string | undefined,
 	customAppendPrompt?: string,
 ): AgentDefinition {
 	const prompt = customAppendPrompt

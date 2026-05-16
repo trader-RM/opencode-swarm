@@ -2208,7 +2208,7 @@ function buildSlashCommandsList(): string {
 }
 
 export function createArchitectAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 	adversarialTesting?: AdversarialTestingConfig,

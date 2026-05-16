@@ -116,7 +116,7 @@ SME is read-only. Cache persistence is Architect's responsibility — save this 
 `;
 
 export function createSMEAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 ): AgentDefinition {

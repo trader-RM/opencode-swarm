@@ -40,7 +40,7 @@ in your reply, or KNOWLEDGE_IGNORED: <id> reason=... when it does not apply.
 `;
 
 export function createSpecWriterAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 ): AgentDefinition {

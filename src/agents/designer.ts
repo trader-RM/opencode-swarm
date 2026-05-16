@@ -165,7 +165,7 @@ RULES:
 `;
 
 export function createDesignerAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 ): AgentDefinition {

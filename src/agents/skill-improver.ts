@@ -50,7 +50,7 @@ A useful proposal contains:
 `;
 
 export function createSkillImproverAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 ): AgentDefinition {

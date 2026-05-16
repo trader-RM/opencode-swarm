@@ -1597,15 +1597,15 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 					const snap = _workloadRouterSnapshot;
 					_workloadRouterSnapshot = undefined;
 					const regCfg = agents[snap.subagentType];
-					if (regCfg && snap.registeredModel !== undefined) regCfg.model = snap.registeredModel;
+					if (regCfg && 'registeredModel' in snap) regCfg.model = snap.registeredModel;
 					if (snap.baseName !== snap.subagentType) {
 						const baseCfg = agents[snap.baseName];
-						if (baseCfg && snap.baseModel !== undefined) baseCfg.model = snap.baseModel;
+						if (baseCfg && 'baseModel' in snap) baseCfg.model = snap.baseModel;
 					}
 					const swCfg = getSwarmAgents();
 					if (swCfg) {
 						const agCfg = swCfg[snap.baseName];
-						if (agCfg && snap.swarmModel !== undefined) agCfg.model = snap.swarmModel;
+						if (agCfg && 'swarmModel' in snap) agCfg.model = snap.swarmModel;
 					}
 					if (_dbg)
 						console.error(

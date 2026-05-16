@@ -223,7 +223,7 @@ COVERAGE REPORTING:
 `;
 
 export function createTestEngineerAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 ): AgentDefinition {

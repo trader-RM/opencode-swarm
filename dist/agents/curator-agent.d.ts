@@ -11,4 +11,4 @@ export type CuratorRole = 'curator_init' | 'curator_phase';
  *   appends to the role-specific default (same semantics as createCriticAgent)
  * - Read-only tool config: write/edit/patch all false
  */
-export declare function createCuratorAgent(model: string, customPrompt?: string, customAppendPrompt?: string, role?: CuratorRole): AgentDefinition;
+export declare function createCuratorAgent(model: string | undefined, customPrompt?: string, customAppendPrompt?: string, role?: CuratorRole): AgentDefinition;

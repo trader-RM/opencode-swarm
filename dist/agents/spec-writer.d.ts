@@ -5,4 +5,4 @@
  * higher-capability model. Architect delegates spec work explicitly.
  */
 import type { AgentDefinition } from './architect.js';
-export declare function createSpecWriterAgent(model: string, customPrompt?: string, customAppendPrompt?: string): AgentDefinition;
+export declare function createSpecWriterAgent(model: string | undefined, customPrompt?: string, customAppendPrompt?: string): AgentDefinition;

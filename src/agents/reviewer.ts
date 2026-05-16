@@ -268,7 +268,7 @@ A blank APPROVED without reasoning is NOT acceptable — it indicates you did no
 `;
 
 export function createReviewerAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 ): AgentDefinition {

@@ -9,4 +9,4 @@
  *   - architect must ask user before invoking, when require_user_approval=true
  */
 import type { AgentDefinition } from './architect.js';
-export declare function createSkillImproverAgent(model: string, customPrompt?: string, customAppendPrompt?: string): AgentDefinition;
+export declare function createSkillImproverAgent(model: string | undefined, customPrompt?: string, customAppendPrompt?: string): AgentDefinition;

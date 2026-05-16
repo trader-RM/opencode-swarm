@@ -33,7 +33,7 @@ const ROLE_CONFIG: Record<
  * - Read-only tool config: write/edit/patch all false
  */
 export function createCuratorAgent(
-	model: string,
+	model: string | undefined,
 	customPrompt?: string,
 	customAppendPrompt?: string,
 	role: CuratorRole = 'curator_init',
