@@ -131,5 +131,5 @@ export const HIGH_CONFLICTS: Set<string> = new Set(
 );
 
 export const CONFLICT_MAP = new Map<string, CommandConflict>(
-	CLAUDE_CODE_CONFLICTS.map((c) => [c.swarmCommand, c]),
+	CLAUDE_CODE_CONFLICTS.map((c) => [c.ccCommand.slice(1), c]),
 );

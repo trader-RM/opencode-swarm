@@ -96,21 +96,21 @@ describe('conflict-registry CI gate', () => {
 			expect(CONFLICT_MAP.size).toBe(CLAUDE_CODE_CONFLICTS.length);
 		});
 
-		it('CONFLICT_MAP has entry for every swarmCommand in CLAUDE_CODE_CONFLICTS', () => {
+		it('CONFLICT_MAP has entry for every ccCommand in CLAUDE_CODE_CONFLICTS', () => {
 			for (const conflict of CLAUDE_CODE_CONFLICTS) {
 				expect(
-					CONFLICT_MAP.has(conflict.swarmCommand),
-					`CONFLICT_MAP missing entry for '${conflict.swarmCommand}'`,
+					CONFLICT_MAP.has(conflict.ccCommand.slice(1)),
+					`CONFLICT_MAP missing entry for '${conflict.ccCommand.slice(1)}'`,
 				).toBe(true);
 			}
 		});
 
-		it('CONFLICT_MAP entries match CLAUDE_CODE_CONFLICTS by swarmCommand key', () => {
+		it('CONFLICT_MAP entries match CLAUDE_CODE_CONFLICTS by ccCommand key', () => {
 			for (const conflict of CLAUDE_CODE_CONFLICTS) {
-				const mapEntry = CONFLICT_MAP.get(conflict.swarmCommand);
+				const mapEntry = CONFLICT_MAP.get(conflict.ccCommand.slice(1));
 				expect(
 					mapEntry,
-					`CONFLICT_MAP missing key '${conflict.swarmCommand}'`,
+					`CONFLICT_MAP missing key '${conflict.ccCommand.slice(1)}'`,
 				).toBe(conflict);
 			}
 		});

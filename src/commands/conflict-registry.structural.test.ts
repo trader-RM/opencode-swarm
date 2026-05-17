@@ -65,10 +65,10 @@ describe('conflict-registry structural tests', () => {
 		expect(CONFLICT_MAP.size).toBe(9);
 	});
 
-	test('7. Every swarmCommand in CLAUDE_CODE_CONFLICTS is a key in CONFLICT_MAP', () => {
+	test('7. Every ccCommand in CLAUDE_CODE_CONFLICTS is a key in CONFLICT_MAP', () => {
 		for (const entry of CLAUDE_CODE_CONFLICTS) {
-			expect(CONFLICT_MAP.has(entry.swarmCommand)).toBe(true);
-			const mapEntry = CONFLICT_MAP.get(entry.swarmCommand);
+			expect(CONFLICT_MAP.has(entry.ccCommand.slice(1))).toBe(true);
+			const mapEntry = CONFLICT_MAP.get(entry.ccCommand.slice(1));
 			expect(mapEntry).toBe(entry);
 		}
 	});
@@ -94,7 +94,7 @@ describe('conflict-registry structural tests', () => {
 
 		// CONFLICT_MAP entries should match source
 		for (const entry of CLAUDE_CODE_CONFLICTS) {
-			const mapEntry = CONFLICT_MAP.get(entry.swarmCommand);
+			const mapEntry = CONFLICT_MAP.get(entry.ccCommand.slice(1));
 			expect(mapEntry).toEqual(entry);
 		}
 

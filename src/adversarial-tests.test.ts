@@ -130,12 +130,38 @@ describe('ADVERSARIAL: constants.architect-whitelist', () => {
 // ADVERSARIAL TESTS FOR write-mutation-evidence.test.ts
 // =============================================================================
 
-// Mock the hooks/utils module before importing the tool
+// Mock the hooks/utils module before importing the tool.
+// Must include ALL exports from hooks/utils.ts — vi.mock leaks across the
+// entire bun test runner process, so a partial mock removes exports that
+// subsequent test files expect to be present (causes "Export not found" errors).
 vi.mock('./hooks/utils', () => ({
 	validateSwarmPath: vi.fn((directory: string, relativePath: string) => {
 		// Simulate successful validation
 		return path.join(directory, relativePath);
 	}),
+	readSwarmFileAsync: vi.fn(() => Promise.resolve(null)),
+	safeHook: vi.fn((fn: unknown) => fn),
+	composeHandlers: vi.fn(
+		(...fns: Array<() => Promise<void>>) =>
+			async () => {
+				for (const fn of fns) await fn();
+			},
+	),
+	composeBlockingHandlers: vi.fn(
+		(...fns: Array<() => Promise<void>>) =>
+			async () => {
+				for (const fn of fns) await fn();
+			},
+	),
+	estimateTokens: vi.fn(() => 0),
+	_internals: {
+		safeHook: vi.fn((fn: unknown) => fn),
+		composeHandlers: vi.fn(),
+		validateSwarmPath: vi.fn((directory: string, relativePath: string) =>
+			path.join(directory, relativePath),
+		),
+		readSwarmFileAsync: vi.fn(() => Promise.resolve(null)),
+	},
 }));
 
 // We need to mock createSwarmTool since it imports from @opencode-ai/plugin
@@ -143,31 +169,25 @@ vi.mock('./tools/create-tool', () => ({
 	createSwarmTool: vi.fn((def) => def),
 }));
 
-vi.mock('@opencode-ai/plugin/tool', () => ({
-	tool: {
-		schema: {
-			number: () => ({
-				int: () => ({
-					min: () => ({
-						describe: () => ({}),
-					}),
-				}),
-				optional: () => ({
-					describe: () => ({}),
-				}),
-			}),
-			string: () => ({
-				optional: () => ({
-					describe: () => ({}),
-				}),
-				describe: () => ({}),
-			}),
-			enum: () => ({
-				describe: () => ({}),
-			}),
-		},
-	},
-}));
+vi.mock('@opencode-ai/plugin/tool', () => {
+	// Self-chaining proxy: any property access or call returns another chain.
+	// Covers tool.schema.string().optional().describe(...) and similar fluent APIs.
+	const makeChain = (): Record<string, unknown> =>
+		new Proxy(
+			Object.assign(() => makeChain(), {}),
+			{
+				get(_t, p: string) {
+					if (p === 'then') return undefined; // avoid being treated as a Promise
+					return makeChain();
+				},
+			},
+		);
+	return {
+		tool: Object.assign(vi.fn((def: unknown) => def), {
+			schema: makeChain(),
+		}),
+	};
+});
 
 // Import the module AFTER mocking
 const { executeWriteMutationEvidence } = await import(

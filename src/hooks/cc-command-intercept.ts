@@ -134,8 +134,7 @@ export function createCcCommandInterceptHook(
 
 				const bareCmd = bareCmdMatch[1].toLowerCase();
 
-				// Special case: /clear is a CC alias for /reset (in CC's alias chain)
-				// CONFLICT_MAP doesn't have 'clear' as a key since the conflict is on 'reset'
+				// /clear is a CC alias for /reset — normalize to 'reset' for CONFLICT_MAP lookup
 				const effectiveCmd = bareCmd === 'clear' ? 'reset' : bareCmd;
 
 				// Check if it's a known CC command with a conflict
