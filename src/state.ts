@@ -19,6 +19,10 @@ import {
 	type EnvironmentProfile,
 } from './environment/profile.js';
 import type { TaskEvidence } from './gate-evidence';
+import {
+	type FullAutoConfigShape,
+	startFullAutoRun,
+} from './full-auto/state.js';
 import { clearPendingCoderScope } from './hooks/delegation-gate.js';
 import { loadPlanJsonOnly, updateTaskStatus } from './plan/manager.js';
 import { derivePlanId } from './plan/utils.js';
@@ -419,6 +423,9 @@ export const swarmState = {
 	/** Whether full-auto mode is enabled in config */
 	fullAutoEnabledInConfig: false,
 
+	/** Full-auto config shape stored at plugin init for auto-init durable writes */
+	fullAutoConfig: undefined as FullAutoConfigShape | undefined,
+
 	/** Per-session environment profiles — keyed by sessionID */
 	environmentProfiles: defaultRunContext.environmentProfiles,
 };
@@ -446,6 +453,7 @@ export function resetSwarmState(): void {
 	_rehydrationCache = null;
 	// Full Auto Mode (Phase 4)
 	swarmState.fullAutoEnabledInConfig = false;
+	swarmState.fullAutoConfig = undefined;
 	swarmState.environmentProfiles.clear();
 	// v6.70.0 gap-closure (#496): clear the module-scoped pending coder-scope
 	// map so a /swarm close + new session with a colliding taskId (e.g. "1.1")
@@ -805,6 +813,30 @@ export function ensureAgentSession(
 	if (!session) {
 		// This should never happen, but TypeScript needs it
 		throw new Error(`Failed to create guardrail session for ${sessionId}`);
+	}
+	// Auto-initialize fullAutoMode from config-level enablement so sessions
+	// are correctly marked active without requiring an explicit /swarm full-auto on.
+	// Guard: only orchestrator sessions (architect, unknown) inherit the flag —
+	// ephemeral critic/reviewer sessions must never have fullAutoMode active.
+	// Durable write must succeed before the flag is set (fail-open: if write
+	// fails, fullAutoMode stays false so the permission gate cannot be bypassed).
+	const strippedInitName = stripKnownSwarmPrefix(agentName ?? 'unknown');
+	if (
+		swarmState.fullAutoEnabledInConfig &&
+		(strippedInitName === 'architect' || strippedInitName === 'unknown') &&
+		directory &&
+		directory.trim().length > 0
+	) {
+		try {
+			_internals.startFullAutoRun(directory, sessionId, swarmState.fullAutoConfig);
+			session.fullAutoMode = true;
+		} catch (err) {
+			logger.warn('[auto-init] durable full-auto write failed — skipping flag set', {
+				sessionId,
+				err: err instanceof Error ? err.message : String(err),
+			});
+			// fullAutoMode stays false — fail-open
+		}
 	}
 	return session;
 }
@@ -1732,6 +1764,7 @@ export const _internals: {
 	rehydrateSessionFromDisk: typeof rehydrateSessionFromDisk;
 	isCouncilGateActive: typeof isCouncilGateActive;
 	defaultRunContext: typeof defaultRunContext;
+	startFullAutoRun: typeof startFullAutoRun;
 } = {
 	swarmState,
 	resetSwarmState,
@@ -1750,4 +1783,5 @@ export const _internals: {
 	rehydrateSessionFromDisk,
 	isCouncilGateActive,
 	defaultRunContext,
+	startFullAutoRun,
 };

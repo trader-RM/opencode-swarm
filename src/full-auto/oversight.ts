@@ -228,6 +228,32 @@ function buildOversightPrompt(input: DispatchFullAutoOversightInput): string {
 		? `\n\n### MUTATION CONTEXT\nThis is a ${toolName} call — the architect is proposing NEW content to REPLACE what is currently on disk. The ARCHITECT OUTPUT above contains the PROPOSED new content. Do NOT reject simply because it differs from the current on-disk version — that difference IS the intended mutation. Instead evaluate whether the proposed content is spec-aligned, well-structured, and an improvement.`
 		: '';
 
+	// Prevent circular TOCTOU rejection on task completion calls.
+	// plan.json is in_progress because the update has not yet executed — checking its
+	// current status is NOT valid evidence and produces a circular dependency.
+	// Only fire for status=completed, not in_progress transitions where plan checks are valid.
+	// Two shapes are possible depending on the call site:
+	//   - policy classifier context: { tool, status } — checked via actionContext.status
+	//   - raw tool args passthrough: { tool, args: { status } } — checked via actionContext.args.status
+	const _ac = actionContext as Record<string, unknown> | undefined;
+	const _acArgs = _ac?.args as Record<string, unknown> | undefined;
+	const completionStatus =
+		_ac?.status === 'completed' || _acArgs?.status === 'completed';
+	const isTaskCompletion = toolName === 'update_task_status' && completionStatus;
+	const evidencePath = taskID
+		? path.join(input.directory, '.swarm', 'evidence', `${taskID}.json`)
+		: null;
+	const taskCompletionHint = isTaskCompletion
+		? [
+				'\n\n### TASK COMPLETION CONTEXT',
+				"This is an update_task_status(completed) call. The plan.json status field has NO evidentiary value here — it is 'in_progress' because this call has not yet executed. Do not read plan.json status as evidence against approval.",
+				evidencePath
+					? `Instead verify: (1) Does ${evidencePath} exist and have a non-empty "gates" object? Read the file and check that every gate listed in "required_gates" has a corresponding entry in "gates" — those entries confirm agents ran and submitted verdicts. Do not assume which gate names are required; read the file. (2) Do the key project artifacts required by the task acceptance criteria exist on disk?`
+					: 'Instead verify that the key project artifacts required by the task acceptance criteria exist on disk.',
+				'You retain full authority to REJECT or request NEEDS_REVISION for any other reason — missing artifacts, failed gates, incomplete work, mismatched task ID, or any other quality concern. The TOCTOU exception applies only to plan.json status.',
+			].join('\n')
+		: '';
+
 	return [
 		'## FULL-AUTO V2 OVERSIGHT REQUEST',
 		`trigger_source: ${triggerSource}`,
@@ -237,6 +263,7 @@ function buildOversightPrompt(input: DispatchFullAutoOversightInput): string {
 		archBlock,
 		ctxBlock,
 		mutationHint,
+		taskCompletionHint,
 		'',
 		'### YOUR TASK',
 		'Verify the action above using read-only tools only. Do not edit, write, or patch.',

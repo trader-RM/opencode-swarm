@@ -9,6 +9,7 @@
 import type { OpencodeClient } from '@opencode-ai/sdk';
 import { type QaGates } from './db/qa-gate-profile.js';
 import { type EnvironmentProfile } from './environment/profile.js';
+import { type FullAutoConfigShape, startFullAutoRun } from './full-auto/state.js';
 import type { EscalationTracker } from './prm/escalation.js';
 import type { PatternMatch } from './prm/types.js';
 import { AgentRunContext } from './state/agent-run-context.js';
@@ -317,6 +318,8 @@ export declare const swarmState: {
     pendingRehydrations: Set<Promise<void>>;
     /** Whether full-auto mode is enabled in config */
     fullAutoEnabledInConfig: boolean;
+    /** Full-auto config shape stored at plugin init for auto-init durable writes */
+    fullAutoConfig: FullAutoConfigShape | undefined;
     /** Per-session environment profiles — keyed by sessionID */
     environmentProfiles: Map<string, EnvironmentProfile>;
 };
@@ -598,4 +601,5 @@ export declare const _internals: {
     rehydrateSessionFromDisk: typeof rehydrateSessionFromDisk;
     isCouncilGateActive: typeof isCouncilGateActive;
     defaultRunContext: typeof defaultRunContext;
+    startFullAutoRun: typeof startFullAutoRun;
 };

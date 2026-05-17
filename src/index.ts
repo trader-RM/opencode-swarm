@@ -333,6 +333,7 @@ async function initializeOpenCodeSwarm(ctx: Parameters<Plugin>[0]) {
 
 	// Track whether full-auto mode is enabled in config
 	swarmState.fullAutoEnabledInConfig = config.full_auto?.enabled === true;
+	swarmState.fullAutoConfig = config.full_auto;
 
 	// Store SDK client for curator LLM delegation
 	swarmState.opencodeClient = ctx.client;

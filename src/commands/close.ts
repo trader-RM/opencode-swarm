@@ -985,12 +985,14 @@ export async function handleCloseCommand(
 	//     curator names, used to route prefixed multi-swarm skill reviews.
 	const preservedClient = swarmState.opencodeClient;
 	const preservedFullAutoFlag = swarmState.fullAutoEnabledInConfig;
+	const preservedFullAutoConfig = swarmState.fullAutoConfig;
 	const preservedCuratorInitNames = swarmState.curatorInitAgentNames;
 	const preservedCuratorPhaseNames = swarmState.curatorPhaseAgentNames;
 	const preservedSkillImproverAgentNames = swarmState.skillImproverAgentNames;
 	resetSwarmState();
 	swarmState.opencodeClient = preservedClient;
 	swarmState.fullAutoEnabledInConfig = preservedFullAutoFlag;
+	swarmState.fullAutoConfig = preservedFullAutoConfig;
 	swarmState.curatorInitAgentNames = preservedCuratorInitNames;
 	swarmState.curatorPhaseAgentNames = preservedCuratorPhaseNames;
 	swarmState.skillImproverAgentNames = preservedSkillImproverAgentNames;
