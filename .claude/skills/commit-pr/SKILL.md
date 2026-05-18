@@ -489,6 +489,59 @@ gh issue comment <issue-number> --body "Fixed in PR #<pr-number>. <bullet summar
 
 Note: Inside a PowerShell here-string (`@"..."@`), backticks are literal — no escaping needed. Double-quotes inside the here-string do not need escaping either.
 
+### Step 8.5 — Comment on the originating issue
+
+If the PR resolves a GitHub issue (i.e. the PR body contains `Closes #<N>` or `Fixes #<N>`), post a comment on that issue summarizing the resolution. This is NOT optional — the issue author may never read the PR body.
+
+The comment MUST include:
+
+1. **Link to the PR** — `Fixed in PR #<N>`
+2. **What changed** — bullet-point summary of the implementation (2-5 bullets)
+3. **How to use it** — config examples, API usage snippets, or command-line examples showing how to enable/use the new feature
+4. **Migration steps** — if any behavior changed, document what users need to do (or explicitly state "No migration required" if the default is backward-compatible)
+
+#### bash (Linux / macOS)
+
+```bash
+gh issue comment <issue-number> --body "Fixed in PR #<pr-number>.
+
+## What changed
+- <bullet 1>
+- <bullet 2>
+
+## How to use
+\`\`\`json
+{ \"config\": \"example\" }
+\`\`\`
+
+## Migration
+<No migration required / migration steps>"
+```
+
+#### PowerShell (Windows)
+
+````powershell
+$comment = @"
+Fixed in PR #<pr-number>.
+
+## What changed
+- <bullet 1>
+- <bullet 2>
+
+## How to use
+```json
+{ "config": "example" }
+```
+
+## Migration
+<No migration required / migration steps>
+"@
+$comment | Out-File "$env:TEMP\issue-comment.txt" -Encoding UTF8
+gh issue comment <issue-number> --body-file "$env:TEMP\issue-comment.txt"
+````
+
+Do NOT skip this step even if the change seems self-explanatory. The issue author asked for a feature or reported a bug — they deserve a direct response with actionable instructions.
+
 ### Step 9 — Pre-merge checklist
 
 Verify every item before asking for a merge:
@@ -504,5 +557,5 @@ Verify every item before asking for a merge:
 - [ ] If the repo tracks `dist/` files: `bun run build` was run and dist/ artifacts are included in the squash commit
 - [ ] All workflow `uses:` references are SHA-pinned (if workflows changed)
 - [ ] PR body has `## Summary`, `## Invariant audit`, and `## Test plan`
-- [ ] If the PR resolves an issue: PR body starts with `Closes #<number>` (first line) and an `gh issue comment` was posted summarizing the change
+- [ ] If the PR resolves an issue: PR body starts with `Closes #<number>` (first line) and a `gh issue comment` was posted per Step 8.5 with what changed, how to use it, and migration steps
 - [ ] All CI checks are green before merging
