@@ -200,7 +200,7 @@ export function tickAndMaybeDispatchCadence(
 	const criticModel =
 		config.full_auto?.critic_model ??
 		config.agents?.critic?.model ??
-		'opencode/big-pickle';
+		'';
 
 	cadenceDispatchInFlight.add(sessionID);
 	const dispatcher = options.dispatch ?? dispatchFullAutoOversight;

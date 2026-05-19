@@ -11,9 +11,31 @@ export const MAX_CONFIG_FILE_BYTES = 102_400;
 
 /**
  * Get the user's configuration directory (XDG Base Directory spec).
+ * Used only for agent prompts — config file location uses getPluginGlobalConfigPath().
  */
 function getUserConfigDir(): string {
 	return process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
+}
+
+/**
+ * Resolve the global (user-level) plugin config file path.
+ *
+ * Primary: <plugin-root>/.opencode/opencode-swarm.json
+ *   The plugin locates its own installation root via import.meta.dirname
+ *   (the dist/ bundle directory), then walks one level up. This lets the
+ *   global config live alongside the plugin source without requiring any
+ *   environment variable or platform-specific home-dir lookup.
+ *
+ * Fallback: ~/.config/opencode/opencode-swarm.json (XDG)
+ *   Used if import.meta.dirname is unavailable (e.g. CJS host).
+ */
+function getPluginGlobalConfigPath(): string {
+	try {
+		const pluginRoot = path.resolve(import.meta.dirname, '..');
+		return path.join(pluginRoot, '.opencode', CONFIG_FILENAME);
+	} catch {
+		return path.join(getUserConfigDir(), 'opencode', CONFIG_FILENAME);
+	}
 }
 
 /**
@@ -149,11 +171,7 @@ function migratePresetsConfig(
  * Zod defaults don't override explicit user values.
  */
 export function loadPluginConfig(directory: string): PluginConfig {
-	const userConfigPath = path.join(
-		getUserConfigDir(),
-		'opencode',
-		CONFIG_FILENAME,
-	);
+	const userConfigPath = getPluginGlobalConfigPath();
 
 	const projectConfigPath = path.join(directory, '.opencode', CONFIG_FILENAME);
 
@@ -232,11 +250,7 @@ export function loadPluginConfigWithMeta(directory: string): {
 	config: PluginConfig;
 	loadedFromFile: boolean;
 } {
-	const userConfigPath = path.join(
-		getUserConfigDir(),
-		'opencode',
-		CONFIG_FILENAME,
-	);
+	const userConfigPath = getPluginGlobalConfigPath();
 	const projectConfigPath = path.join(directory, '.opencode', CONFIG_FILENAME);
 	const userResult = loadRawConfigFromPath(userConfigPath);
 	const projectResult = loadRawConfigFromPath(projectConfigPath);
@@ -365,11 +379,7 @@ export async function loadPluginConfigWithMetaAsync(
 	config: PluginConfig;
 	loadedFromFile: boolean;
 }> {
-	const userConfigPath = path.join(
-		getUserConfigDir(),
-		'opencode',
-		CONFIG_FILENAME,
-	);
+	const userConfigPath = getPluginGlobalConfigPath();
 	const projectConfigPath = path.join(directory, '.opencode', CONFIG_FILENAME);
 	const [userResult, projectResult] = await Promise.all([
 		loadRawConfigFromPathAsync(userConfigPath),

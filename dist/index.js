@@ -51,7 +51,7 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "opencode-swarm",
-    version: "7.23.1",
+    version: "7.24.0",
     description: "Architect-centric agentic swarm plugin for OpenCode - hub-and-spoke orchestration with SME consultation, code generation, and QA review",
     main: "dist/index.js",
     types: "dist/index.d.ts",
@@ -825,25 +825,7 @@ var init_constants = __esm(() => {
       throw new Error(`Agent '${agentName}' has invalid tool names: [${invalidTools.join(", ")}]. ` + `All tools must be registered in TOOL_NAME_SET.`);
     }
   }
-  DEFAULT_MODELS = {
-    explorer: "opencode/big-pickle",
-    coder: "opencode/minimax-m2.5-free",
-    reviewer: "opencode/big-pickle",
-    test_engineer: "opencode/gpt-5-nano",
-    sme: "opencode/big-pickle",
-    critic: "opencode/big-pickle",
-    critic_sounding_board: "opencode/gpt-5-nano",
-    critic_drift_verifier: "opencode/gpt-5-nano",
-    critic_hallucination_verifier: "opencode/gpt-5-nano",
-    critic_oversight: "opencode/gpt-5-nano",
-    docs: "opencode/big-pickle",
-    designer: "opencode/big-pickle",
-    curator_init: "opencode/gpt-5-nano",
-    curator_phase: "opencode/gpt-5-nano",
-    skill_improver: "opencode/big-pickle",
-    spec_writer: "opencode/big-pickle",
-    default: "opencode/big-pickle"
-  };
+  DEFAULT_MODELS = {};
   DEFAULT_SCORING_CONFIG = {
     enabled: false,
     max_candidates: 100,
@@ -15902,6 +15884,14 @@ import * as path from "node:path";
 function getUserConfigDir() {
   return process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
 }
+function getPluginGlobalConfigPath() {
+  try {
+    const pluginRoot = path.resolve(import.meta.dirname, "..");
+    return path.join(pluginRoot, ".opencode", CONFIG_FILENAME);
+  } catch {
+    return path.join(getUserConfigDir(), "opencode", CONFIG_FILENAME);
+  }
+}
 function loadRawConfigFromPath(configPath) {
   try {
     const stats = fs2.statSync(configPath);
@@ -15959,7 +15949,7 @@ function migratePresetsConfig(raw) {
   return raw;
 }
 function loadPluginConfig(directory) {
-  const userConfigPath = path.join(getUserConfigDir(), "opencode", CONFIG_FILENAME);
+  const userConfigPath = getPluginGlobalConfigPath();
   const projectConfigPath = path.join(directory, ".opencode", CONFIG_FILENAME);
   const userResult = loadRawConfigFromPath(userConfigPath);
   const projectResult = loadRawConfigFromPath(projectConfigPath);
@@ -15997,7 +15987,7 @@ function loadPluginConfig(directory) {
   return result.data;
 }
 function loadPluginConfigWithMeta(directory) {
-  const userConfigPath = path.join(getUserConfigDir(), "opencode", CONFIG_FILENAME);
+  const userConfigPath = getPluginGlobalConfigPath();
   const projectConfigPath = path.join(directory, ".opencode", CONFIG_FILENAME);
   const userResult = loadRawConfigFromPath(userConfigPath);
   const projectResult = loadRawConfigFromPath(projectConfigPath);
@@ -16072,7 +16062,7 @@ function reduceParsedConfig(rawUserConfig, rawProjectConfig, loadedFromFile, con
   return result.data;
 }
 async function loadPluginConfigWithMetaAsync(directory) {
-  const userConfigPath = path.join(getUserConfigDir(), "opencode", CONFIG_FILENAME);
+  const userConfigPath = getPluginGlobalConfigPath();
   const projectConfigPath = path.join(directory, ".opencode", CONFIG_FILENAME);
   const [userResult, projectResult] = await Promise.all([
     loadRawConfigFromPathAsync(userConfigPath),
@@ -16521,17 +16511,17 @@ function bunHash(input) {
   return hash2;
 }
 function streamFromNode(pipe2) {
-  const collected = new Promise((resolve) => {
+  const collected = new Promise((resolve2) => {
     if (!pipe2) {
-      resolve(Buffer.alloc(0));
+      resolve2(Buffer.alloc(0));
       return;
     }
     const chunks = [];
     pipe2.on("data", (chunk) => {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     });
-    pipe2.on("end", () => resolve(Buffer.concat(chunks)));
-    pipe2.on("error", () => resolve(Buffer.concat(chunks)));
+    pipe2.on("end", () => resolve2(Buffer.concat(chunks)));
+    pipe2.on("error", () => resolve2(Buffer.concat(chunks)));
   });
   const toWebReadable = () => {
     if (!pipe2) {
@@ -16657,9 +16647,9 @@ function bunSpawn(cmd, options) {
     ]
   });
   let timeoutHandle;
-  const exited = new Promise((resolve) => {
-    proc.on("exit", (code) => resolve(code ?? 0));
-    proc.on("error", () => resolve(1));
+  const exited = new Promise((resolve2) => {
+    proc.on("exit", (code) => resolve2(code ?? 0));
+    proc.on("error", () => resolve2(1));
     if (options?.timeout && options.timeout > 0) {
       timeoutHandle = setTimeout(() => {
         try {
@@ -17537,7 +17527,7 @@ async function retryCasWithBackoff(directory, eventInput, options) {
         expectedHashPrefix: currentExpected.slice(0, 8),
         delayMs
       });
-      await new Promise((resolve3) => setTimeout(resolve3, delayMs));
+      await new Promise((resolve4) => setTimeout(resolve4, delayMs));
       if (options.verifyValid) {
         const stillValid = await options.verifyValid();
         if (!stillValid)
@@ -20186,12 +20176,12 @@ var require_adapter = __commonJS((exports, module2) => {
     return newFs;
   }
   function toPromise(method) {
-    return (...args2) => new Promise((resolve3, reject) => {
+    return (...args2) => new Promise((resolve4, reject) => {
       args2.push((err2, result) => {
         if (err2) {
           reject(err2);
         } else {
-          resolve3(result);
+          resolve4(result);
         }
       });
       method(...args2);
@@ -20549,7 +20539,7 @@ async function withEvidenceLock(directory, evidencePath, agent, taskId, fn, time
     });
     const delay = Math.min(backoffMs(attempt), deadline - Date.now());
     if (delay > 0) {
-      await new Promise((resolve4) => setTimeout(resolve4, delay));
+      await new Promise((resolve5) => setTimeout(resolve5, delay));
     }
     attempt++;
   }
@@ -20992,7 +20982,7 @@ var init_archive = __esm(() => {
 // src/db/project-db.ts
 import { existsSync as existsSync6, mkdirSync as mkdirSync5 } from "node:fs";
 import { createRequire as createRequire2 } from "node:module";
-import { join as join9, resolve as resolve5 } from "node:path";
+import { join as join9, resolve as resolve6 } from "node:path";
 function loadDatabaseCtor() {
   if (_DatabaseCtor)
     return _DatabaseCtor;
@@ -21022,13 +21012,13 @@ function runProjectMigrations(db) {
   }
 }
 function projectDbPath(directory) {
-  return join9(resolve5(directory), ".swarm", "swarm.db");
+  return join9(resolve6(directory), ".swarm", "swarm.db");
 }
 function projectDbExists(directory) {
   return existsSync6(projectDbPath(directory));
 }
 function getProjectDb(directory) {
-  const key = resolve5(directory);
+  const key = resolve6(directory);
   const existing = _projectDbs.get(key);
   if (existing)
     return existing;
@@ -54001,7 +53991,7 @@ async function _detectAvailableLinter(_projectDir, biomeBin, eslintBin) {
       stderr: "pipe"
     });
     const biomeExit = biomeProc.exited;
-    const timeout = new Promise((resolve12) => setTimeout(() => resolve12("timeout"), DETECT_TIMEOUT));
+    const timeout = new Promise((resolve13) => setTimeout(() => resolve13("timeout"), DETECT_TIMEOUT));
     const result = await Promise.race([biomeExit, timeout]);
     if (result === "timeout") {
       biomeProc.kill();
@@ -54015,7 +54005,7 @@ async function _detectAvailableLinter(_projectDir, biomeBin, eslintBin) {
       stderr: "pipe"
     });
     const eslintExit = eslintProc.exited;
-    const timeout = new Promise((resolve12) => setTimeout(() => resolve12("timeout"), DETECT_TIMEOUT));
+    const timeout = new Promise((resolve13) => setTimeout(() => resolve13("timeout"), DETECT_TIMEOUT));
     const result = await Promise.race([eslintExit, timeout]);
     if (result === "timeout") {
       eslintProc.kill();
@@ -57752,9 +57742,9 @@ async function runTests(framework, scope, files, coverage, timeout_ms, cwd) {
       stderr: "pipe",
       cwd
     });
-    const timeoutPromise = new Promise((resolve16) => setTimeout(() => {
+    const timeoutPromise = new Promise((resolve17) => setTimeout(() => {
       proc.kill();
-      resolve16(-1);
+      resolve17(-1);
     }, timeout_ms));
     const [exitCode, stdoutResult, stderrResult] = await Promise.all([
       Promise.race([proc.exited, timeoutPromise]),
@@ -59206,13 +59196,13 @@ class CircuitBreaker {
     if (this.config.callTimeoutMs <= 0) {
       return fn();
     }
-    return new Promise((resolve17, reject) => {
+    return new Promise((resolve18, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Call timeout after ${this.config.callTimeoutMs}ms`));
       }, this.config.callTimeoutMs);
       fn().then((result) => {
         clearTimeout(timeout);
-        resolve17(result);
+        resolve18(result);
       }).catch((error93) => {
         clearTimeout(timeout);
         reject(error93);
@@ -59499,7 +59489,7 @@ var init_queue = __esm(() => {
 
 // src/background/worker.ts
 function sleep(ms) {
-  return new Promise((resolve17) => setTimeout(resolve17, ms));
+  return new Promise((resolve18) => setTimeout(resolve18, ms));
 }
 
 class WorkerManager {
@@ -69428,8 +69418,8 @@ ${JSON.stringify(symbolNames, null, 2)}`);
       var moduleRtn;
       var Module = moduleArg;
       var readyPromiseResolve, readyPromiseReject;
-      var readyPromise = new Promise((resolve25, reject) => {
-        readyPromiseResolve = resolve25;
+      var readyPromise = new Promise((resolve26, reject) => {
+        readyPromiseResolve = resolve26;
         readyPromiseReject = reject;
       });
       var ENVIRONMENT_IS_WEB = typeof window == "object";
@@ -69509,13 +69499,13 @@ ${JSON.stringify(symbolNames, null, 2)}`);
           }
           readAsync = /* @__PURE__ */ __name(async (url3) => {
             if (isFileURI(url3)) {
-              return new Promise((resolve25, reject) => {
+              return new Promise((resolve26, reject) => {
                 var xhr = new XMLHttpRequest;
                 xhr.open("GET", url3, true);
                 xhr.responseType = "arraybuffer";
                 xhr.onload = () => {
                   if (xhr.status == 200 || xhr.status == 0 && xhr.response) {
-                    resolve25(xhr.response);
+                    resolve26(xhr.response);
                     return;
                   }
                   reject(xhr.status);
@@ -69735,10 +69725,10 @@ ${JSON.stringify(symbolNames, null, 2)}`);
         __name(receiveInstantiationResult, "receiveInstantiationResult");
         var info2 = getWasmImports();
         if (Module["instantiateWasm"]) {
-          return new Promise((resolve25, reject) => {
+          return new Promise((resolve26, reject) => {
             Module["instantiateWasm"](info2, (mod, inst) => {
               receiveInstance(mod, inst);
-              resolve25(mod.exports);
+              resolve26(mod.exports);
             });
           });
         }
@@ -72501,13 +72491,13 @@ class PlanSyncWorker {
     } catch {}
   }
   withTimeout(promise3, ms, timeoutMessage) {
-    return new Promise((resolve19, reject) => {
+    return new Promise((resolve20, reject) => {
       const timer = setTimeout(() => {
         reject(new Error(`${timeoutMessage} (${ms}ms)`));
       }, ms);
       promise3.then((result) => {
         clearTimeout(timer);
-        resolve19(result);
+        resolve20(result);
       }).catch((error93) => {
         clearTimeout(timer);
         reject(error93);
@@ -73080,7 +73070,7 @@ function tickAndMaybeDispatchCadence(directory, sessionID, counter, config3, opt
   if (!runState || runState.status !== "running")
     return decision;
   const oversightAgentName = resolveOversightAgentName(options.activeAgent);
-  const criticModel = config3.full_auto?.critic_model ?? config3.agents?.critic?.model ?? "opencode/big-pickle";
+  const criticModel = config3.full_auto?.critic_model ?? config3.agents?.critic?.model ?? "";
   cadenceDispatchInFlight.add(sessionID);
   const dispatcher = options.dispatch ?? dispatchFullAutoOversight;
   dispatcher({
@@ -74598,7 +74588,7 @@ function createFullAutoInterceptHook(config3, directory) {
     }
     log(`[full-auto-intercept] Escalation detected (${escalationType}) — triggering autonomous oversight`);
     const criticContext = buildCriticContext(architectText, escalationType);
-    const criticModel = fullAutoConfig.critic_model ?? "claude-sonnet-4-20250514";
+    const criticModel = fullAutoConfig.critic_model ?? "";
     const oversightAgent = createCriticAutonomousOversightAgent(criticModel, criticContext);
     const architectAgent = architectMessage.info?.agent;
     const resolvedOversightAgentName = resolveOversightAgentName2(architectAgent);
@@ -75034,8 +75024,8 @@ async function withTimeout(promise3, ms, timeoutError) {
   }
 }
 function yieldToEventLoop() {
-  return new Promise((resolve19) => {
-    const t = setTimeout(resolve19, 0);
+  return new Promise((resolve20) => {
+    const t = setTimeout(resolve20, 0);
     if (typeof t.unref === "function") {
       t.unref();
     }
@@ -76089,7 +76079,7 @@ async function saveGraph(workspace, graph, options) {
           lastError = error93 instanceof Error ? error93 : new Error(String(error93));
           if (lastError instanceof Error && "code" in lastError && lastError.code === "EEXIST" && retries < WINDOWS_RENAME_MAX_RETRIES2 - 1) {
             retries++;
-            await new Promise((resolve21) => setTimeout(resolve21, WINDOWS_RENAME_RETRY_DELAY_MS2));
+            await new Promise((resolve22) => setTimeout(resolve22, WINDOWS_RENAME_RETRY_DELAY_MS2));
             continue;
           }
           throw lastError;
@@ -77072,26 +77062,26 @@ function pLimit(concurrency) {
     activeCount--;
     resumeNext();
   };
-  const run2 = async (function_, resolve23, arguments_2) => {
+  const run2 = async (function_, resolve24, arguments_2) => {
     const result = (async () => function_(...arguments_2))();
-    resolve23(result);
+    resolve24(result);
     try {
       await result;
     } catch {}
     next();
   };
-  const enqueue = (function_, resolve23, reject, arguments_2) => {
+  const enqueue = (function_, resolve24, reject, arguments_2) => {
     const queueItem = { reject };
     new Promise((internalResolve) => {
       queueItem.run = internalResolve;
       queue.enqueue(queueItem);
-    }).then(run2.bind(undefined, function_, resolve23, arguments_2));
+    }).then(run2.bind(undefined, function_, resolve24, arguments_2));
     if (activeCount < concurrency) {
       resumeNext();
     }
   };
-  const generator = (function_, ...arguments_2) => new Promise((resolve23, reject) => {
-    enqueue(function_, resolve23, reject, arguments_2);
+  const generator = (function_, ...arguments_2) => new Promise((resolve24, reject) => {
+    enqueue(function_, resolve24, reject, arguments_2);
   });
   Object.defineProperties(generator, {
     activeCount: {
@@ -81985,7 +81975,7 @@ function createFullAutoPermissionHook(options) {
         throw new Error(`FULL_AUTO_ESCALATE_HUMAN [${decision.code}]: ${decision.reason}`);
       }
       const triggerSource = mapTriggerSource(decision, toolName);
-      const criticModel = fullAutoConfig?.critic_model ?? config3.agents?.critic?.model ?? "opencode/big-pickle";
+      const criticModel = fullAutoConfig?.critic_model ?? config3.agents?.critic?.model ?? "";
       const oversightAgentName = resolveOversightAgentNameFromActive(activeAgent);
       if (lowerTool === "phase_complete" && effectivePhase !== undefined) {
         const stateForPhase = loadFullAutoRunState(directory, sessionID);
@@ -82116,7 +82106,7 @@ import * as path82 from "node:path";
 import * as child_process6 from "node:child_process";
 var WIN32_CMD_BINARIES = new Set(["npm", "npx", "pnpm", "yarn"]);
 function spawnAsync(command, cwd, timeoutMs) {
-  return new Promise((resolve28) => {
+  return new Promise((resolve29) => {
     try {
       const [rawCmd, ...args2] = command;
       const cmd = process.platform === "win32" && WIN32_CMD_BINARIES.has(rawCmd) && !rawCmd.includes(".") ? `${rawCmd}.cmd` : rawCmd;
@@ -82163,24 +82153,24 @@ function spawnAsync(command, cwd, timeoutMs) {
         try {
           proc.kill();
         } catch {}
-        resolve28(null);
+        resolve29(null);
       }, timeoutMs);
       proc.on("close", (code) => {
         if (done)
           return;
         done = true;
         clearTimeout(timer);
-        resolve28({ exitCode: code ?? 1, stdout, stderr });
+        resolve29({ exitCode: code ?? 1, stdout, stderr });
       });
       proc.on("error", () => {
         if (done)
           return;
         done = true;
         clearTimeout(timer);
-        resolve28(null);
+        resolve29(null);
       });
     } catch {
-      resolve28(null);
+      resolve29(null);
     }
   });
 }
@@ -89658,7 +89648,7 @@ init_create_tool();
 var GITINGEST_TIMEOUT_MS = 1e4;
 var GITINGEST_MAX_RESPONSE_BYTES = 5242880;
 var GITINGEST_MAX_RETRIES = 2;
-var delay = (ms) => new Promise((resolve35) => setTimeout(resolve35, ms));
+var delay = (ms) => new Promise((resolve36) => setTimeout(resolve36, ms));
 async function fetchGitingest(args2) {
   for (let attempt = 0;attempt <= GITINGEST_MAX_RETRIES; attempt++) {
     try {
@@ -92644,7 +92634,7 @@ async function runNpmAudit(directory) {
       stderr: "pipe",
       cwd: directory
     });
-    const timeoutPromise = new Promise((resolve37) => setTimeout(() => resolve37("timeout"), AUDIT_TIMEOUT_MS));
+    const timeoutPromise = new Promise((resolve38) => setTimeout(() => resolve38("timeout"), AUDIT_TIMEOUT_MS));
     const result = await Promise.race([
       Promise.all([proc.stdout.text(), proc.stderr.text()]).then(([stdout2, stderr2]) => ({ stdout: stdout2, stderr: stderr2 })),
       timeoutPromise
@@ -92764,7 +92754,7 @@ async function runPipAudit(directory) {
       stderr: "pipe",
       cwd: directory
     });
-    const timeoutPromise = new Promise((resolve37) => setTimeout(() => resolve37("timeout"), AUDIT_TIMEOUT_MS));
+    const timeoutPromise = new Promise((resolve38) => setTimeout(() => resolve38("timeout"), AUDIT_TIMEOUT_MS));
     const result = await Promise.race([
       Promise.all([proc.stdout.text(), proc.stderr.text()]).then(([stdout2, stderr2]) => ({ stdout: stdout2, stderr: stderr2 })),
       timeoutPromise
@@ -92892,7 +92882,7 @@ async function runCargoAudit(directory) {
       stderr: "pipe",
       cwd: directory
     });
-    const timeoutPromise = new Promise((resolve37) => setTimeout(() => resolve37("timeout"), AUDIT_TIMEOUT_MS));
+    const timeoutPromise = new Promise((resolve38) => setTimeout(() => resolve38("timeout"), AUDIT_TIMEOUT_MS));
     const result = await Promise.race([
       Promise.all([proc.stdout.text(), proc.stderr.text()]).then(([stdout2, stderr]) => ({ stdout: stdout2, stderr })),
       timeoutPromise
@@ -93016,7 +93006,7 @@ async function runGoAudit(directory) {
       stderr: "pipe",
       cwd: directory
     });
-    const timeoutPromise = new Promise((resolve37) => setTimeout(() => resolve37("timeout"), AUDIT_TIMEOUT_MS));
+    const timeoutPromise = new Promise((resolve38) => setTimeout(() => resolve38("timeout"), AUDIT_TIMEOUT_MS));
     const result = await Promise.race([
       Promise.all([proc.stdout.text(), proc.stderr.text()]).then(([stdout2, stderr]) => ({ stdout: stdout2, stderr })),
       timeoutPromise
@@ -93149,7 +93139,7 @@ async function runDotnetAudit(directory) {
       stderr: "pipe",
       cwd: directory
     });
-    const timeoutPromise = new Promise((resolve37) => setTimeout(() => resolve37("timeout"), AUDIT_TIMEOUT_MS));
+    const timeoutPromise = new Promise((resolve38) => setTimeout(() => resolve38("timeout"), AUDIT_TIMEOUT_MS));
     const result = await Promise.race([
       Promise.all([proc.stdout.text(), proc.stderr.text()]).then(([stdout2, stderr]) => ({ stdout: stdout2, stderr })),
       timeoutPromise
@@ -93265,7 +93255,7 @@ async function runBundleAudit(directory) {
       stderr: "pipe",
       cwd: directory
     });
-    const timeoutPromise = new Promise((resolve37) => setTimeout(() => resolve37("timeout"), AUDIT_TIMEOUT_MS));
+    const timeoutPromise = new Promise((resolve38) => setTimeout(() => resolve38("timeout"), AUDIT_TIMEOUT_MS));
     const result = await Promise.race([
       Promise.all([proc.stdout.text(), proc.stderr.text()]).then(([stdout2, stderr]) => ({ stdout: stdout2, stderr })),
       timeoutPromise
@@ -93410,7 +93400,7 @@ async function runDartAudit(directory) {
       stderr: "pipe",
       cwd: directory
     });
-    const timeoutPromise = new Promise((resolve37) => setTimeout(() => resolve37("timeout"), AUDIT_TIMEOUT_MS));
+    const timeoutPromise = new Promise((resolve38) => setTimeout(() => resolve38("timeout"), AUDIT_TIMEOUT_MS));
     const result = await Promise.race([
       Promise.all([proc.stdout.text(), proc.stderr.text()]).then(([stdout2, stderr]) => ({ stdout: stdout2, stderr })),
       timeoutPromise
@@ -93525,7 +93515,7 @@ async function runComposerAudit(directory) {
       stderr: "pipe",
       cwd: directory
     });
-    const timeoutPromise = new Promise((resolve37) => setTimeout(() => resolve37("timeout"), AUDIT_TIMEOUT_MS));
+    const timeoutPromise = new Promise((resolve38) => setTimeout(() => resolve38("timeout"), AUDIT_TIMEOUT_MS));
     const result = await Promise.race([
       Promise.all([proc.stdout.text(), proc.stderr.text()]).then(([stdout2, stderr]) => ({ stdout: stdout2, stderr })),
       timeoutPromise
@@ -95184,7 +95174,7 @@ function mapSemgrepSeverity(severity) {
   }
 }
 async function executeWithTimeout(command, args2, options) {
-  return new Promise((resolve39) => {
+  return new Promise((resolve40) => {
     const child = child_process9.spawn(command, args2, {
       shell: false,
       cwd: options.cwd
@@ -95193,7 +95183,7 @@ async function executeWithTimeout(command, args2, options) {
     let stderr = "";
     const timeout = setTimeout(() => {
       child.kill("SIGTERM");
-      resolve39({
+      resolve40({
         stdout,
         stderr: "Process timed out",
         exitCode: 124
@@ -95207,7 +95197,7 @@ async function executeWithTimeout(command, args2, options) {
     });
     child.on("close", (code) => {
       clearTimeout(timeout);
-      resolve39({
+      resolve40({
         stdout,
         stderr,
         exitCode: code ?? 0
@@ -95215,7 +95205,7 @@ async function executeWithTimeout(command, args2, options) {
     });
     child.on("error", (err2) => {
       clearTimeout(timeout);
-      resolve39({
+      resolve40({
         stdout,
         stderr: err2.message,
         exitCode: 1
@@ -95414,7 +95404,7 @@ async function acquireLock2(lockPath) {
       };
     } catch {
       if (attempt < LOCK_RETRY_DELAYS_MS.length) {
-        await new Promise((resolve40) => setTimeout(resolve40, LOCK_RETRY_DELAYS_MS[attempt]));
+        await new Promise((resolve41) => setTimeout(resolve41, LOCK_RETRY_DELAYS_MS[attempt]));
       }
     }
   }
@@ -99369,7 +99359,7 @@ async function ripgrepSearch(opts) {
       stderr: "pipe",
       cwd: opts.workspace
     });
-    const timeout = new Promise((resolve46) => setTimeout(() => resolve46("timeout"), REGEX_TIMEOUT_MS));
+    const timeout = new Promise((resolve47) => setTimeout(() => resolve47("timeout"), REGEX_TIMEOUT_MS));
     const exitPromise = proc.exited;
     const result = await Promise.race([exitPromise, timeout]);
     if (result === "timeout") {

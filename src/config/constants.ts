@@ -654,116 +654,28 @@ for (const [agentName, tools] of Object.entries(AGENT_TOOL_MAP)) {
 }
 
 // Default models for each agent/category
-// v6.14: switched to free OpenCode Zen models; architect key intentionally
-// omitted so it inherits the OpenCode UI model selection.
-export const DEFAULT_MODELS: Record<string, string> = {
-	// Explorer — fast read-heavy analysis
-	explorer: 'opencode/big-pickle',
+// Routed through the local ollama server (ollama-cloud/* = remote cloud models
+// served via https://ollama.com). Architect key intentionally omitted so it
+// inherits the OpenCode UI model selection.
+//
+// Tier assignments:
+//   Deep reasoning  — kimi-k2-thinking (1T thinking), mistral-large-3:675b
+//   Strong coding   — devstral-2:123b (Mistral code-specialist)
+//   Strong general  — deepseek-v4-pro, deepseek-v3.2
+//   Fast coding     — qwen3-coder-next (80B MoE)
+//   Fast general    — deepseek-v4-flash, gemini-3-flash-preview (high-frequency gates)
+// All agent models intentionally omitted — every non-architect agent inherits
+// the OpenCode UI session model. Set models via .opencode/opencode-swarm.json
+// agents block to override per-agent. Architect key was never included here
+// (it always inherits the UI selection); all other agents now match that behavior.
+export const DEFAULT_MODELS: Record<string, string> = {};
 
-	// Pipeline agents — differentiated models for writing vs reviewing
-	coder: 'opencode/minimax-m2.5-free',
-	reviewer: 'opencode/big-pickle',
-	test_engineer: 'opencode/gpt-5-nano',
-
-	// SME, Critic variants, Docs, Designer — reasoning/general tasks
-	sme: 'opencode/big-pickle',
-	critic: 'opencode/big-pickle',
-	critic_sounding_board: 'opencode/gpt-5-nano',
-	critic_drift_verifier: 'opencode/gpt-5-nano',
-	critic_hallucination_verifier: 'opencode/gpt-5-nano',
-	critic_oversight: 'opencode/gpt-5-nano',
-	docs: 'opencode/big-pickle',
-	designer: 'opencode/big-pickle',
-
-	// Curator agents — lightweight read-only analysis (same model family as explorer)
-	curator_init: 'opencode/gpt-5-nano',
-	curator_phase: 'opencode/gpt-5-nano',
-
-	// v2: Skill improver — defaults to a strong reasoning model, but is gated
-	// behind skill_improver.enabled and a daily quota (issue #629).
-	skill_improver: 'opencode/big-pickle',
-
-	// v2: Spec writer — independent from architect so users can run a
-	// high-capability model on spec while keeping architect cheaper.
-	spec_writer: 'opencode/big-pickle',
-
-	// Fallback
-	default: 'opencode/big-pickle',
-};
-
-// Full agent configuration with model and fallback_models chains.
-// Used by install() and writeProjectConfigIfMissing() to populate default configs.
-// General Council agents (council_generalist, council_skeptic, council_domain_expert)
-// derive their models from reviewer/critic/sme entries and don't need separate entries.
+// All per-agent configs intentionally empty — agents inherit the OpenCode UI
+// session model. Override via .opencode/opencode-swarm.json agents block.
 export const DEFAULT_AGENT_CONFIGS: Record<
 	string,
 	{ model: string; fallback_models: string[] }
-> = {
-	coder: {
-		model: 'opencode/minimax-m2.5-free',
-		fallback_models: ['opencode/gpt-5-nano', 'opencode/big-pickle'],
-	},
-	reviewer: {
-		model: 'opencode/big-pickle',
-		fallback_models: ['opencode/gpt-5-nano', 'opencode/big-pickle'],
-	},
-	test_engineer: {
-		model: 'opencode/gpt-5-nano',
-		fallback_models: ['opencode/big-pickle'],
-	},
-	explorer: {
-		model: 'opencode/big-pickle',
-		fallback_models: ['opencode/gpt-5-nano', 'opencode/big-pickle'],
-	},
-	sme: {
-		model: 'opencode/big-pickle',
-		fallback_models: ['opencode/gpt-5-nano', 'opencode/big-pickle'],
-	},
-	critic: {
-		model: 'opencode/big-pickle',
-		fallback_models: ['opencode/gpt-5-nano', 'opencode/big-pickle'],
-	},
-	docs: {
-		model: 'opencode/big-pickle',
-		fallback_models: ['opencode/gpt-5-nano', 'opencode/big-pickle'],
-	},
-	designer: {
-		model: 'opencode/big-pickle',
-		fallback_models: ['opencode/gpt-5-nano', 'opencode/big-pickle'],
-	},
-	critic_sounding_board: {
-		model: 'opencode/gpt-5-nano',
-		fallback_models: ['opencode/big-pickle'],
-	},
-	critic_drift_verifier: {
-		model: 'opencode/gpt-5-nano',
-		fallback_models: ['opencode/big-pickle'],
-	},
-	critic_hallucination_verifier: {
-		model: 'opencode/gpt-5-nano',
-		fallback_models: ['opencode/big-pickle'],
-	},
-	critic_oversight: {
-		model: 'opencode/gpt-5-nano',
-		fallback_models: ['opencode/big-pickle'],
-	},
-	curator_init: {
-		model: 'opencode/gpt-5-nano',
-		fallback_models: ['opencode/big-pickle'],
-	},
-	curator_phase: {
-		model: 'opencode/gpt-5-nano',
-		fallback_models: ['opencode/big-pickle'],
-	},
-	skill_improver: {
-		model: 'opencode/big-pickle',
-		fallback_models: ['opencode/gpt-5-nano'],
-	},
-	spec_writer: {
-		model: 'opencode/big-pickle',
-		fallback_models: ['opencode/gpt-5-nano'],
-	},
-};
+> = {};
 
 // Check if agent is in QA category
 export function isQAAgent(name: string): name is QAAgentName {

@@ -1,3 +1,439 @@
 {
-  "agents": {}
+  "_note": "All values shown are schema defaults. Change only what you want to override. Delete this file to revert to built-in defaults.",
+
+  "agents": {
+    "explorer":                     {},
+    "coder":                        {},
+    "reviewer":                     {},
+    "test_engineer":                {},
+    "sme":                          {},
+    "critic":                       {},
+    "critic_sounding_board":        {},
+    "critic_drift_verifier":        {},
+    "critic_hallucination_verifier":{},
+    "critic_oversight":             {},
+    "docs":                         {},
+    "designer":                     {},
+    "curator_init":                 {},
+    "curator_phase":                {},
+    "skill_improver":               {},
+    "spec_writer":                  {}
+  },
+
+  "default_agent": "architect",
+  "auto_select_architect": true,
+  "max_iterations": 5,
+  "qa_retry_limit": 5,
+  "execution_mode": "balanced",
+  "inject_phase_reminders": true,
+  "turbo_mode": false,
+  "quiet": true,
+  "version_check": true,
+
+  "pipeline": {
+    "parallel_precheck": true
+  },
+
+  "hooks": {
+    "system_enhancer": true,
+    "compaction": true,
+    "agent_activity": true,
+    "delegation_tracker": false,
+    "agent_awareness_max_chars": 2000,
+    "delegation_gate": true,
+    "delegation_max_chars": 4000
+  },
+
+  "phase_complete": {
+    "enabled": true,
+    "required_agents": ["coder", "reviewer", "test_engineer"],
+    "require_docs": true,
+    "policy": "enforce",
+    "regression_sweep": {
+      "enforce": true
+    }
+  },
+
+  "gates": {
+    "syntax_check": { "enabled": true },
+    "sast_scan":    { "enabled": true },
+    "sbom_generate":{ "enabled": true },
+    "build_check":  { "enabled": true },
+    "placeholder_scan": {
+      "enabled": true,
+      "deny_patterns": ["TODO", "FIXME", "TBD", "XXX", "placeholder", "stub", "wip", "not implemented"],
+      "allow_globs": ["docs/**", "examples/**", "tests/**", "**/*.test.*", "**/*.spec.*", "**/mocks/**", "**/__tests__/**"],
+      "max_allowed_findings": 0
+    },
+    "quality_budget": {
+      "enabled": true,
+      "max_complexity_delta": 5,
+      "max_public_api_delta": 10,
+      "max_duplication_ratio": 0.05,
+      "min_test_to_code_ratio": 0.3,
+      "enforce_on_globs": ["src/**"],
+      "exclude_globs": ["docs/**", "tests/**", "**/*.test.*"]
+    }
+  },
+
+  "guardrails": {
+    "enabled": true,
+    "max_tool_calls": 200,
+    "max_duration_minutes": 30,
+    "max_repetitions": 10,
+    "max_consecutive_errors": 5,
+    "max_transient_retries": 5,
+    "warning_threshold": 0.75,
+    "idle_timeout_minutes": 60,
+    "no_op_warning_threshold": 15,
+    "max_coder_revisions": 5,
+    "runaway_output_max_turns": 5,
+    "block_destructive_commands": true,
+    "shell_audit_log": true,
+    "profiles": {
+      "architect":     { "max_tool_calls": 0,    "max_duration_minutes": 0,  "max_consecutive_errors": 8, "warning_threshold": 0.75 },
+      "coder":         { "max_tool_calls": 1000,  "max_duration_minutes": 45, "max_consecutive_errors": 8, "warning_threshold": 0.85 },
+      "test_engineer": { "max_tool_calls": 1000,  "max_duration_minutes": 45, "max_consecutive_errors": 8, "warning_threshold": 0.85 },
+      "explorer":      { "max_tool_calls": 1000,  "max_duration_minutes": 20, "max_consecutive_errors": 8, "warning_threshold": 0.75 },
+      "reviewer":      { "max_tool_calls": 1000,  "max_duration_minutes": 30, "max_consecutive_errors": 8, "warning_threshold": 0.65 },
+      "critic":        { "max_tool_calls": 1000,  "max_duration_minutes": 30, "warning_threshold": 0.65 },
+      "sme":           { "max_tool_calls": 1000,  "max_duration_minutes": 30, "warning_threshold": 0.65 },
+      "docs":          { "max_tool_calls": 1000,  "max_duration_minutes": 30, "warning_threshold": 0.75 },
+      "designer":      { "max_tool_calls": 1000,  "max_duration_minutes": 20, "warning_threshold": 0.75 }
+    },
+    "qa_gates": {
+      "required_tools": ["diff", "syntax_check", "placeholder_scan", "lint", "pre_check_batch"],
+      "require_reviewer_test_engineer": true
+    }
+  },
+
+  "watchdog": {
+    "scope_guard": true,
+    "skip_in_turbo": false,
+    "delegation_ledger": true
+  },
+
+  "self_review": {
+    "enabled": true,
+    "skip_in_turbo": true
+  },
+
+  "tool_filter": {
+    "enabled": true,
+    "overrides": {}
+  },
+
+  "authority": {
+    "enabled": true,
+    "rules": {},
+    "universal_deny_prefixes": []
+  },
+
+  "plan_cursor": {
+    "enabled": true,
+    "max_tokens": 1500,
+    "lookahead_tasks": 2
+  },
+
+  "evidence": {
+    "enabled": true,
+    "max_age_days": 90,
+    "max_bundles": 1000,
+    "auto_archive": false
+  },
+
+  "summaries": {
+    "enabled": true,
+    "threshold_bytes": 102400,
+    "max_summary_chars": 1000,
+    "max_stored_bytes": 10485760,
+    "retention_days": 7,
+    "exempt_tools": ["retrieve_summary", "task", "read"]
+  },
+
+  "review_passes": {
+    "always_security_review": true,
+    "security_globs": [
+      "**/auth/**", "**/api/**", "**/crypto/**",
+      "**/security/**", "**/middleware/**", "**/session/**", "**/token/**"
+    ]
+  },
+
+  "adversarial_detection": {
+    "enabled": true,
+    "policy": "warn",
+    "pairs": [["coder", "reviewer"]]
+  },
+
+  "adversarial_testing": {
+    "enabled": true,
+    "scope": "all"
+  },
+
+  "integration_analysis": {
+    "enabled": true
+  },
+
+  "docs": {
+    "enabled": true,
+    "doc_patterns": [
+      "README.md", "CONTRIBUTING.md",
+      "docs/**/*.md", "docs/**/*.rst", "**/CHANGELOG.md"
+    ]
+  },
+
+  "ui_review": {
+    "enabled": false,
+    "trigger_paths": [
+      "**/pages/**", "**/components/**", "**/views/**",
+      "**/screens/**", "**/ui/**", "**/layouts/**"
+    ],
+    "trigger_keywords": [
+      "new page", "new screen", "new component", "redesign",
+      "layout change", "form", "modal", "dialog", "dropdown",
+      "sidebar", "navbar", "dashboard", "landing page",
+      "signup", "login form", "settings page", "profile page"
+    ]
+  },
+
+  "compaction_advisory": {
+    "enabled": true,
+    "thresholds": [50, 75, 100, 125, 150]
+  },
+
+  "lint": {
+    "enabled": true,
+    "mode": "check",
+    "linter": "auto",
+    "patterns": ["**/*.{ts,tsx,js,jsx,mjs,cjs}", "**/biome.json", "**/biome.jsonc"],
+    "exclude": ["**/node_modules/**", "**/dist/**", "**/.git/**", "**/coverage/**", "**/*.min.js"]
+  },
+
+  "secretscan": {
+    "enabled": true,
+    "patterns": [
+      "**/*.{env,properties,yml,yaml,json,js,ts}",
+      "**/.env*", "**/secrets/**", "**/credentials/**",
+      "**/config/**/*.ts", "**/config/**/*.js"
+    ],
+    "exclude": [
+      "**/node_modules/**", "**/dist/**", "**/.git/**", "**/coverage/**",
+      "**/test/**", "**/tests/**", "**/__tests__/**",
+      "**/*.test.ts", "**/*.test.js", "**/*.spec.ts", "**/*.spec.js"
+    ],
+    "extensions": [
+      ".env", ".properties", ".yml", ".yaml", ".json",
+      ".js", ".ts", ".py", ".rb", ".go", ".java", ".cs", ".php"
+    ]
+  },
+
+  "checkpoint": {
+    "enabled": true,
+    "auto_checkpoint_threshold": 3,
+    "allow_empty_commits": false
+  },
+
+  "automation": {
+    "mode": "manual",
+    "capabilities": {
+      "plan_sync": true,
+      "phase_preflight": true,
+      "config_doctor_on_startup": true,
+      "config_doctor_autofix": true,
+      "evidence_auto_summaries": true,
+      "decision_drift_detection": true
+    }
+  },
+
+  "knowledge": {
+    "enabled": true,
+    "swarm_max_entries": 100,
+    "hive_max_entries": 200,
+    "auto_promote_days": 90,
+    "max_inject_count": 5,
+    "inject_char_budget": 2000,
+    "max_lesson_display_chars": 120,
+    "dedup_threshold": 0.6,
+    "scope_filter": ["global"],
+    "hive_enabled": true,
+    "rejected_max_entries": 20,
+    "validation_enabled": true,
+    "evergreen_confidence": 0.9,
+    "evergreen_utility": 0.8,
+    "low_utility_threshold": 0.3,
+    "min_retrievals_for_utility": 3,
+    "schema_version": 1,
+    "directive_min_confidence": 0.75,
+    "same_project_weight": 1.0,
+    "cross_project_weight": 0.5,
+    "min_encounter_score": 0.1,
+    "initial_encounter_score": 1.0,
+    "encounter_increment": 0.1,
+    "max_encounter_score": 10.0,
+    "default_max_phases": 10,
+    "todo_max_phases": 3,
+    "sweep_enabled": true
+  },
+
+  "curator": {
+    "enabled": true,
+    "init_enabled": true,
+    "phase_enabled": true,
+    "max_summary_tokens": 2000,
+    "min_knowledge_confidence": 0.7,
+    "compliance_report": true,
+    "suppress_warnings": true,
+    "drift_inject_max_chars": 500,
+    "llm_timeout_ms": 300000,
+    "skill_generation_enabled": true,
+    "skill_generation_mode": "draft",
+    "min_skill_confidence": 0.85,
+    "min_skill_confirmations": 2
+  },
+
+  "knowledge_application": {
+    "enabled": true,
+    "mode": "warn",
+    "min_confidence": 0.85,
+    "critical_requires_ack": true,
+    "require_skill_refs": true
+  },
+
+  "skill_improver": {
+    "enabled": false,
+    "max_calls_per_day": 10,
+    "trigger": "manual",
+    "targets": ["skills", "spec", "architect_prompt", "knowledge"],
+    "write_mode": "proposal",
+    "require_user_approval": true,
+    "quota_window": "utc",
+    "allow_deterministic_fallback": true
+  },
+
+  "spec_writer": {
+    "enabled": true,
+    "allow_spec_write": true
+  },
+
+  "tool_output": {
+    "truncation_enabled": true,
+    "max_lines": 150
+  },
+
+  "slop_detector": {
+    "enabled": true,
+    "classThreshold": 3,
+    "commentStripThreshold": 5,
+    "diffLineThreshold": 200,
+    "importHygieneThreshold": 2
+  },
+
+  "todo_gate": {
+    "enabled": true,
+    "max_high_priority": 0,
+    "block_on_threshold": false
+  },
+
+  "incremental_verify": {
+    "enabled": true,
+    "command": null,
+    "timeoutMs": 30000,
+    "triggerAgents": ["coder"]
+  },
+
+  "compaction_service": {
+    "enabled": true,
+    "observationThreshold": 40,
+    "reflectionThreshold": 60,
+    "emergencyThreshold": 80,
+    "preserveLastNTurns": 5
+  },
+
+  "prm": {
+    "enabled": true,
+    "pattern_thresholds": {
+      "repetition_loop": 2,
+      "ping_pong": 2,
+      "expansion_drift": 3,
+      "stuck_on_test": 3,
+      "context_thrash": 3
+    },
+    "max_trajectory_lines": 1000,
+    "escalation_enabled": true,
+    "detection_timeout_ms": 100
+  },
+
+  "council": {
+    "enabled": true,
+    "maxRounds": 3,
+    "parallelTimeoutMs": 30000,
+    "vetoPriority": true,
+    "requireAllMembers": false,
+    "minimumMembers": 3,
+    "phaseConcernsAllowComplete": true,
+    "general": {
+      "enabled": true,
+      "searchProvider": "tavily",
+      "deliberate": true,
+      "maxSourcesPerMember": 5
+    }
+  },
+
+  "parallelization": {
+    "enabled": false,
+    "maxConcurrentTasks": 1,
+    "evidenceLockTimeoutMs": 60000,
+    "max_coders": 3,
+    "max_reviewers": 2
+  },
+
+  "turbo": {
+    "strategy": "standard"
+  },
+
+  "context_budget": {
+    "enabled": true,
+    "warn_threshold": 0.7,
+    "critical_threshold": 0.9,
+    "model_limits": { "default": 128000 },
+    "max_injection_tokens": 4000,
+    "tracked_agents": ["architect"],
+    "enforce": true,
+    "prune_target": 0.7,
+    "preserve_last_n_turns": 4,
+    "recent_window": 10,
+    "enforce_on_agent_switch": true,
+    "tool_output_mask_threshold": 2000
+  },
+
+  "full_auto": {
+    "enabled": true,
+    "critic_model": "",
+    "mode": "supervised",
+    "fail_closed": true,
+    "max_interactions_per_phase": 50,
+    "deadlock_threshold": 5,
+    "escalation_mode": "pause",
+    "permission_policy": {
+      "enabled": true,
+      "trusted_roots": ["."],
+      "trusted_domains": [],
+      "protected_paths": [
+        ".git", ".github/workflows", ".swarm",
+        "package.json", "package-lock.json", "bun.lock",
+        "CHANGELOG.md", ".release-please-manifest.json", "release-please-config.json",
+        "src/index.ts", "src/hooks/guardrails.ts", "src/hooks/delegation-gate.ts",
+        "src/hooks/scope-guard.ts", "src/hooks/full-auto-permission.ts",
+        "src/hooks/full-auto-intercept.ts", "src/full-auto",
+        "src/config/schema.ts", "src/config/constants.ts",
+        "src/tools/phase-complete.ts", "dist"
+      ],
+      "allow_defaults": true
+    },
+    "denials": {
+      "max_consecutive": 5,
+      "max_total": 50,
+      "on_limit": "pause"
+    }
+  }
 }

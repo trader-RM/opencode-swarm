@@ -268,7 +268,7 @@ export function createFullAutoPermissionHook(
 			const criticModel =
 				fullAutoConfig?.critic_model ??
 				config.agents?.critic?.model ??
-				'opencode/big-pickle';
+				'';
 			const oversightAgentName =
 				resolveOversightAgentNameFromActive(activeAgent);
 			// H7 fix: wrap the dispatcher in a fail-closed try/catch. The

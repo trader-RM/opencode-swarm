@@ -52,7 +52,7 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "opencode-swarm",
-    version: "7.23.1",
+    version: "7.24.0",
     description: "Architect-centric agentic swarm plugin for OpenCode - hub-and-spoke orchestration with SME consultation, code generation, and QA review",
     main: "dist/index.js",
     types: "dist/index.d.ts",
@@ -16755,72 +16755,7 @@ var init_constants = __esm(() => {
       throw new Error(`Agent '${agentName}' has invalid tool names: [${invalidTools.join(", ")}]. ` + `All tools must be registered in TOOL_NAME_SET.`);
     }
   }
-  DEFAULT_AGENT_CONFIGS = {
-    coder: {
-      model: "opencode/minimax-m2.5-free",
-      fallback_models: ["opencode/gpt-5-nano", "opencode/big-pickle"]
-    },
-    reviewer: {
-      model: "opencode/big-pickle",
-      fallback_models: ["opencode/gpt-5-nano", "opencode/big-pickle"]
-    },
-    test_engineer: {
-      model: "opencode/gpt-5-nano",
-      fallback_models: ["opencode/big-pickle"]
-    },
-    explorer: {
-      model: "opencode/big-pickle",
-      fallback_models: ["opencode/gpt-5-nano", "opencode/big-pickle"]
-    },
-    sme: {
-      model: "opencode/big-pickle",
-      fallback_models: ["opencode/gpt-5-nano", "opencode/big-pickle"]
-    },
-    critic: {
-      model: "opencode/big-pickle",
-      fallback_models: ["opencode/gpt-5-nano", "opencode/big-pickle"]
-    },
-    docs: {
-      model: "opencode/big-pickle",
-      fallback_models: ["opencode/gpt-5-nano", "opencode/big-pickle"]
-    },
-    designer: {
-      model: "opencode/big-pickle",
-      fallback_models: ["opencode/gpt-5-nano", "opencode/big-pickle"]
-    },
-    critic_sounding_board: {
-      model: "opencode/gpt-5-nano",
-      fallback_models: ["opencode/big-pickle"]
-    },
-    critic_drift_verifier: {
-      model: "opencode/gpt-5-nano",
-      fallback_models: ["opencode/big-pickle"]
-    },
-    critic_hallucination_verifier: {
-      model: "opencode/gpt-5-nano",
-      fallback_models: ["opencode/big-pickle"]
-    },
-    critic_oversight: {
-      model: "opencode/gpt-5-nano",
-      fallback_models: ["opencode/big-pickle"]
-    },
-    curator_init: {
-      model: "opencode/gpt-5-nano",
-      fallback_models: ["opencode/big-pickle"]
-    },
-    curator_phase: {
-      model: "opencode/gpt-5-nano",
-      fallback_models: ["opencode/big-pickle"]
-    },
-    skill_improver: {
-      model: "opencode/big-pickle",
-      fallback_models: ["opencode/gpt-5-nano"]
-    },
-    spec_writer: {
-      model: "opencode/big-pickle",
-      fallback_models: ["opencode/gpt-5-nano"]
-    }
-  };
+  DEFAULT_AGENT_CONFIGS = {};
 });
 
 // src/config/schema.ts
@@ -17760,6 +17695,14 @@ import * as path5 from "path";
 function getUserConfigDir() {
   return process.env.XDG_CONFIG_HOME || path5.join(os2.homedir(), ".config");
 }
+function getPluginGlobalConfigPath() {
+  try {
+    const pluginRoot = path5.resolve(import.meta.dirname, "..");
+    return path5.join(pluginRoot, ".opencode", CONFIG_FILENAME);
+  } catch {
+    return path5.join(getUserConfigDir(), "opencode", CONFIG_FILENAME);
+  }
+}
 function loadRawConfigFromPath(configPath) {
   try {
     const stats = fs2.statSync(configPath);
@@ -17817,7 +17760,7 @@ function migratePresetsConfig(raw) {
   return raw;
 }
 function loadPluginConfig(directory) {
-  const userConfigPath = path5.join(getUserConfigDir(), "opencode", CONFIG_FILENAME);
+  const userConfigPath = getPluginGlobalConfigPath();
   const projectConfigPath = path5.join(directory, ".opencode", CONFIG_FILENAME);
   const userResult = loadRawConfigFromPath(userConfigPath);
   const projectResult = loadRawConfigFromPath(projectConfigPath);
@@ -17855,7 +17798,7 @@ function loadPluginConfig(directory) {
   return result.data;
 }
 function loadPluginConfigWithMeta(directory) {
-  const userConfigPath = path5.join(getUserConfigDir(), "opencode", CONFIG_FILENAME);
+  const userConfigPath = getPluginGlobalConfigPath();
   const projectConfigPath = path5.join(directory, ".opencode", CONFIG_FILENAME);
   const userResult = loadRawConfigFromPath(userConfigPath);
   const projectResult = loadRawConfigFromPath(projectConfigPath);
@@ -19568,12 +19511,12 @@ var require_adapter = __commonJS((exports, module) => {
     return newFs;
   }
   function toPromise(method) {
-    return (...args) => new Promise((resolve3, reject) => {
+    return (...args) => new Promise((resolve4, reject) => {
       args.push((err, result) => {
         if (err) {
           reject(err);
         } else {
-          resolve3(result);
+          resolve4(result);
         }
       });
       method(...args);
@@ -19758,7 +19701,7 @@ async function withEvidenceLock(directory, evidencePath, agent, taskId, fn, time
     });
     const delay = Math.min(backoffMs(attempt), deadline - Date.now());
     if (delay > 0) {
-      await new Promise((resolve4) => setTimeout(resolve4, delay));
+      await new Promise((resolve5) => setTimeout(resolve5, delay));
     }
     attempt++;
   }
@@ -20179,7 +20122,7 @@ var init_archive = __esm(() => {
 // src/db/project-db.ts
 import { existsSync as existsSync5, mkdirSync as mkdirSync4 } from "fs";
 import { createRequire } from "module";
-import { join as join8, resolve as resolve5 } from "path";
+import { join as join8, resolve as resolve6 } from "path";
 function loadDatabaseCtor() {
   if (_DatabaseCtor)
     return _DatabaseCtor;
@@ -20209,13 +20152,13 @@ function runProjectMigrations(db) {
   }
 }
 function projectDbPath(directory) {
-  return join8(resolve5(directory), ".swarm", "swarm.db");
+  return join8(resolve6(directory), ".swarm", "swarm.db");
 }
 function projectDbExists(directory) {
   return existsSync5(projectDbPath(directory));
 }
 function getProjectDb(directory) {
-  const key = resolve5(directory);
+  const key = resolve6(directory);
   const existing = _projectDbs.get(key);
   if (existing)
     return existing;
@@ -45010,7 +44953,7 @@ async function _detectAvailableLinter(_projectDir, biomeBin, eslintBin) {
       stderr: "pipe"
     });
     const biomeExit = biomeProc.exited;
-    const timeout = new Promise((resolve10) => setTimeout(() => resolve10("timeout"), DETECT_TIMEOUT));
+    const timeout = new Promise((resolve11) => setTimeout(() => resolve11("timeout"), DETECT_TIMEOUT));
     const result = await Promise.race([biomeExit, timeout]);
     if (result === "timeout") {
       biomeProc.kill();
@@ -45024,7 +44967,7 @@ async function _detectAvailableLinter(_projectDir, biomeBin, eslintBin) {
       stderr: "pipe"
     });
     const eslintExit = eslintProc.exited;
-    const timeout = new Promise((resolve10) => setTimeout(() => resolve10("timeout"), DETECT_TIMEOUT));
+    const timeout = new Promise((resolve11) => setTimeout(() => resolve11("timeout"), DETECT_TIMEOUT));
     const result = await Promise.race([eslintExit, timeout]);
     if (result === "timeout") {
       eslintProc.kill();
@@ -48761,9 +48704,9 @@ async function runTests(framework, scope, files, coverage, timeout_ms, cwd) {
       stderr: "pipe",
       cwd
     });
-    const timeoutPromise = new Promise((resolve14) => setTimeout(() => {
+    const timeoutPromise = new Promise((resolve15) => setTimeout(() => {
       proc.kill();
-      resolve14(-1);
+      resolve15(-1);
     }, timeout_ms));
     const [exitCode, stdoutResult, stderrResult] = await Promise.all([
       Promise.race([proc.exited, timeoutPromise]),
@@ -50215,13 +50158,13 @@ class CircuitBreaker {
     if (this.config.callTimeoutMs <= 0) {
       return fn();
     }
-    return new Promise((resolve15, reject) => {
+    return new Promise((resolve16, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Call timeout after ${this.config.callTimeoutMs}ms`));
       }, this.config.callTimeoutMs);
       fn().then((result) => {
         clearTimeout(timeout);
-        resolve15(result);
+        resolve16(result);
       }).catch((error93) => {
         clearTimeout(timeout);
         reject(error93);
@@ -50508,7 +50451,7 @@ var init_queue = __esm(() => {
 
 // src/background/worker.ts
 function sleep(ms) {
-  return new Promise((resolve15) => setTimeout(resolve15, ms));
+  return new Promise((resolve16) => setTimeout(resolve16, ms));
 }
 
 class WorkerManager {

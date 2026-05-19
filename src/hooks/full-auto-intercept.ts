@@ -883,7 +883,7 @@ export function createFullAutoInterceptHook(
 
 		// Get the critic model (from config or default)
 		const criticModel =
-			fullAutoConfig.critic_model ?? 'claude-sonnet-4-20250514';
+			fullAutoConfig.critic_model ?? '';
 
 		// Create the oversight agent
 		const oversightAgent = createCriticAutonomousOversightAgent(
