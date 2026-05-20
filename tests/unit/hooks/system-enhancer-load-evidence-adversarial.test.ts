@@ -25,7 +25,6 @@ const mockLoadPlanJsonOnly = vi.fn();
 vi.mock('../../../src/evidence/manager.js', () => ({
 	loadEvidence: mockLoadEvidence,
 	listEvidenceTaskIds: mockListEvidenceTaskIds,
-	validateProjectRoot: vi.fn(),
 }));
 
 // Mock the plan/manager module

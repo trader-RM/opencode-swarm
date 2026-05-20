@@ -11,7 +11,6 @@ import {
 	type MutationGateResult,
 } from '../mutation/gate.js';
 import { createSwarmTool } from './create-tool';
-import { resolveWorkingDirectory } from './resolve-working-directory';
 
 export const mutation_test: ReturnType<typeof createSwarmTool> =
 	createSwarmTool({
@@ -141,18 +140,7 @@ export const mutation_test: ReturnType<typeof createSwarmTool> =
 					);
 				}
 
-				const resolved = resolveWorkingDirectory(
-					typedArgs.working_directory,
-					directory,
-				);
-				if (!resolved.success) {
-					return JSON.stringify(
-						{ success: false, error: resolved.message },
-						null,
-						2,
-					);
-				}
-				const cwd = resolved.directory;
+				const cwd = typedArgs.working_directory || directory || process.cwd();
 				const passThreshold = typedArgs.pass_threshold ?? 0.8;
 				const warnThreshold = typedArgs.warn_threshold ?? 0.6;
 

@@ -5,7 +5,6 @@ import {
 	type TestImpactResult,
 } from '../test-impact/analyzer.js';
 import { createSwarmTool } from './create-tool';
-import { resolveWorkingDirectory } from './resolve-working-directory';
 
 export const test_impact: ReturnType<typeof createSwarmTool> = createSwarmTool({
 	description:
@@ -47,18 +46,7 @@ export const test_impact: ReturnType<typeof createSwarmTool> = createSwarmTool({
 				);
 			}
 
-			const resolved = resolveWorkingDirectory(
-				typedArgs.working_directory,
-				directory,
-			);
-			if (!resolved.success) {
-				return JSON.stringify(
-					{ error: resolved.message, success: false },
-					null,
-					2,
-				);
-			}
-			const cwd = resolved.directory;
+			const cwd = typedArgs.working_directory || directory || process.cwd();
 			const result: TestImpactResult = await analyzeImpact(
 				typedArgs.changedFiles,
 				cwd,

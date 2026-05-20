@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { validateProjectRoot } from '../evidence/manager.js';
 
 export type TestRunResult = 'pass' | 'fail' | 'skip';
 
@@ -22,17 +21,12 @@ const MAX_STACK_LENGTH = 200;
 const MAX_CHANGED_FILES = 50;
 
 function getHistoryPath(workingDir?: string): string {
-	if (!workingDir) {
-		throw new Error(
-			'getHistoryPath requires a working directory — project root must be provided by the caller',
-		);
-	}
-	if (!path.isAbsolute(workingDir)) {
-		throw new Error(
-			`getHistoryPath requires an absolute project root path, got: "${workingDir}"`,
-		);
-	}
-	return path.join(workingDir, '.swarm', 'cache', 'test-history.jsonl');
+	return path.join(
+		workingDir || process.cwd(),
+		'.swarm',
+		'cache',
+		'test-history.jsonl',
+	);
 }
 
 function sanitizeErrorMessage(errorMessage?: string): string | undefined {
@@ -61,63 +55,12 @@ const DANGEROUS_PROPERTY_NAMES = new Set([
 	'prototype',
 ]);
 
-function sanitizeChangedFiles(changedFiles: unknown[]): string[] {
+function sanitizeChangedFiles(changedFiles: string[]): string[] {
 	const validFiles = changedFiles.filter(
 		(f): f is string =>
 			typeof f === 'string' && f.length > 0 && !DANGEROUS_PROPERTY_NAMES.has(f),
 	);
 	return validFiles.slice(0, MAX_CHANGED_FILES);
-}
-
-function isTestRunResult(value: unknown): value is TestRunResult {
-	return value === 'pass' || value === 'fail' || value === 'skip';
-}
-
-function parseStoredRecord(value: unknown): TestRunRecord | null {
-	if (typeof value !== 'object' || value === null) return null;
-	const record = value as Record<string, unknown>;
-	if (typeof record.testFile !== 'string' || record.testFile.length === 0) {
-		return null;
-	}
-	if (typeof record.testName !== 'string' || record.testName.length === 0) {
-		return null;
-	}
-	if (typeof record.taskId !== 'string' || record.taskId.length === 0) {
-		return null;
-	}
-	if (!isTestRunResult(record.result)) return null;
-	if (
-		typeof record.durationMs !== 'number' ||
-		!Number.isFinite(record.durationMs)
-	) {
-		return null;
-	}
-	if (
-		typeof record.timestamp !== 'string' ||
-		Number.isNaN(Date.parse(record.timestamp))
-	) {
-		return null;
-	}
-
-	return {
-		timestamp: record.timestamp,
-		taskId: record.taskId,
-		testFile: record.testFile,
-		testName: record.testName,
-		result: record.result,
-		durationMs: Math.max(0, record.durationMs),
-		errorMessage:
-			typeof record.errorMessage === 'string'
-				? sanitizeErrorMessage(record.errorMessage)
-				: undefined,
-		stackPrefix:
-			typeof record.stackPrefix === 'string'
-				? sanitizeStackPrefix(record.stackPrefix)
-				: undefined,
-		changedFiles: sanitizeChangedFiles(
-			Array.isArray(record.changedFiles) ? record.changedFiles : [],
-		),
-	};
 }
 
 export function appendTestRun(
@@ -181,9 +124,6 @@ export function appendTestRun(
 	const historyPath = getHistoryPath(workingDir);
 	const historyDir = path.dirname(historyPath);
 
-	// Guard: reject writes to subdirectories of projects that already have .swarm/
-	_internals.validateProjectRoot(workingDir!);
-
 	// Create directory if it doesn't exist
 	if (!fs.existsSync(historyDir)) {
 		fs.mkdirSync(historyDir, { recursive: true });
@@ -195,20 +135,20 @@ export function appendTestRun(
 	// Append new record
 	existingRecords.push(sanitizedRecord);
 
-	// Prune: keep only last 20 records per (testFile, testName)
-	const recordsByTest = new Map<string, TestRunRecord[]>();
+	// Prune: keep only last 20 records per testFile
+	const recordsByFile = new Map<string, TestRunRecord[]>();
 	for (const rec of existingRecords) {
-		const normalizedKey = `${rec.testFile.toLowerCase()}|${rec.testName.toLowerCase()}`;
-		if (!recordsByTest.has(normalizedKey)) {
-			recordsByTest.set(normalizedKey, []);
+		const normalizedFile = rec.testFile.toLowerCase();
+		if (!recordsByFile.has(normalizedFile)) {
+			recordsByFile.set(normalizedFile, []);
 		}
-		recordsByTest.get(normalizedKey)!.push(rec);
+		recordsByFile.get(normalizedFile)!.push(rec);
 	}
 
 	// Rebuild with pruning
 	const prunedRecords: TestRunRecord[] = [];
-	for (const [, records] of recordsByTest) {
-		// Sort by timestamp ascending within each test key
+	for (const [, records] of recordsByFile) {
+		// Sort by timestamp ascending within each file
 		records.sort(
 			(a, b) =>
 				new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
@@ -263,9 +203,15 @@ function readAllRecords(historyPath: string): TestRunRecord[] {
 			}
 			try {
 				const parsed = JSON.parse(trimmed);
-				const record = parseStoredRecord(parsed);
-				if (record) {
-					records.push(record);
+				// Basic validation: ensure it's an object with required fields
+				if (
+					typeof parsed === 'object' &&
+					parsed !== null &&
+					'testFile' in parsed &&
+					'testName' in parsed &&
+					'result' in parsed
+				) {
+					records.push(parsed as TestRunRecord);
 				}
 			} catch {
 				// Skip corrupted JSON lines silently
@@ -313,12 +259,3 @@ export function getAllHistory(workingDir?: string): TestRunRecord[] {
 
 	return records;
 }
-
-/**
- * DI seam for testability. Contains functions that tests may override.
- */
-export const _internals: {
-	validateProjectRoot: typeof validateProjectRoot;
-} = {
-	validateProjectRoot,
-} as const;

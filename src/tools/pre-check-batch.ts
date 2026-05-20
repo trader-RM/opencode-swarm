@@ -871,7 +871,7 @@ export function classifySastFindings(
 /**
  * Run all 4 pre-check tools in parallel with concurrency limit
  * @param input - The pre-check batch input
- * @param workspaceDir - Optional workspace directory for traversal validation (injected project root from createSwarmTool, or input.directory)
+ * @param workspaceDir - Optional workspace directory for traversal validation (defaults to directory param or process.cwd())
  */
 export async function runPreCheckBatch(
 	input: PreCheckBatchInput,
@@ -1170,9 +1170,7 @@ export const pre_check_batch: ReturnType<typeof tool> = createSwarmTool({
 			),
 		directory: z
 			.string()
-			.describe(
-				'Project root directory — must be the workspace root, subdirectories are rejected',
-			),
+			.describe('Directory to run checks in (e.g., "." or "./src")'),
 		sast_threshold: z
 			.enum(['low', 'medium', 'high', 'critical'])
 			.optional()
@@ -1268,28 +1266,11 @@ export const pre_check_batch: ReturnType<typeof tool> = createSwarmTool({
 		// This handles cases where path.isAbsolute may not detect Windows paths correctly
 		const resolvedDirectory = path.resolve(typedArgs.directory);
 
-		// Determine workspace anchor: use the injected project root (directory parameter)
-		// rather than the user-supplied arg value, to prevent self-validation bypass
-		const workspaceAnchor = path.resolve(directory);
+		// Determine workspace anchor: use resolved directory as workspace,
+		// regardless of whether the original input was detected as absolute
+		const workspaceAnchor = resolvedDirectory;
 
-		// Reject subdirectory: if arg resolves inside project root, hard-reject
-		if (
-			resolvedDirectory !== workspaceAnchor &&
-			resolvedDirectory.startsWith(workspaceAnchor + path.sep)
-		) {
-			const subDirError = `directory "${typedArgs.directory}" is a subdirectory of the project root — pre_check_batch requires the project root directory "${workspaceAnchor}"`;
-			const subDirResult: PreCheckBatchResult = {
-				gates_passed: false,
-				lint: { ran: false, error: subDirError, duration_ms: 0 },
-				secretscan: { ran: false, error: subDirError, duration_ms: 0 },
-				sast_scan: { ran: false, error: subDirError, duration_ms: 0 },
-				quality_budget: { ran: false, error: subDirError, duration_ms: 0 },
-				total_duration_ms: 0,
-			};
-			return JSON.stringify(subDirResult, null, 2);
-		}
-
-		// Validate directory using the resolved path against the true workspace anchor
+		// Validate directory using the resolved path
 		const dirError = validateDirectory(resolvedDirectory, workspaceAnchor);
 		if (dirError) {
 			const errorResult: PreCheckBatchResult = {

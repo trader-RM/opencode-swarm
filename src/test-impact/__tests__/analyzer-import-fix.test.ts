@@ -3,25 +3,16 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import {
-	_internals as analyzerInternals,
-	buildImpactMap,
-} from '../analyzer.js';
+import { buildImpactMap } from '../analyzer.js';
 
 describe('analyzer-import-fix', () => {
 	let tempDir: string;
-	let savedValidateProjectRoot: typeof analyzerInternals.validateProjectRoot;
 
 	beforeEach(() => {
-		// Disable validateProjectRoot for tests using temp dirs under os.tmpdir()
-		savedValidateProjectRoot = analyzerInternals.validateProjectRoot;
-		analyzerInternals.validateProjectRoot = () => {};
-
 		tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'import-fix-test-'));
 	});
 
 	afterEach(() => {
-		analyzerInternals.validateProjectRoot = savedValidateProjectRoot;
 		try {
 			fs.rmSync(tempDir, { recursive: true, force: true });
 		} catch {
