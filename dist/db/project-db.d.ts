@@ -5,7 +5,7 @@
  * constraints and QA gate profiles. One cached instance per normalized
  * directory path.
  */
-import type { Database } from 'bun:sqlite';
+import { type SwarmDb as Database } from './database-loader.js';
 /**
  * Run all pending migrations on the provided database.
  * Idempotent: existing migrations are not re-applied.
