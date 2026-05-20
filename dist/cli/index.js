@@ -20120,17 +20120,74 @@ var init_archive = __esm(() => {
   init_utils();
 });
 
+// src/db/database-loader.ts
+import { createRequire } from "module";
+function makeNodeSqliteConstructor() {
+  const req = createRequire(import.meta.url);
+  const { DatabaseSync } = req("node:sqlite");
+  return class NodeDatabase {
+    _db;
+    constructor(path8) {
+      this._db = new DatabaseSync(path8);
+    }
+    run(sql, params) {
+      if (params && params.length > 0) {
+        this._db.prepare(sql).run(...params);
+      } else {
+        this._db.exec(sql);
+      }
+    }
+    query(sql) {
+      const stmt = this._db.prepare(sql);
+      return {
+        get: (...args) => stmt.get(...args) ?? null,
+        all: (...args) => stmt.all(...args)
+      };
+    }
+    transaction(fn) {
+      return () => {
+        this._db.exec("BEGIN");
+        try {
+          const result = fn();
+          this._db.exec("COMMIT");
+          return result;
+        } catch (err) {
+          try {
+            this._db.exec("ROLLBACK");
+          } catch {}
+          throw err;
+        }
+      };
+    }
+    close() {
+      this._db.close();
+    }
+  };
+}
+function loadDatabaseCtor() {
+  if (_Ctor)
+    return _Ctor;
+  const req = createRequire(import.meta.url);
+  try {
+    const bunMod = req("bun:sqlite");
+    _Ctor = bunMod.Database;
+    return _Ctor;
+  } catch {}
+  try {
+    _Ctor = makeNodeSqliteConstructor();
+    return _Ctor;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error("opencode-swarm: SQLite unavailable \u2014 neither bun:sqlite nor node:sqlite " + `could be loaded. This plugin requires Bun or Node.js \u2265 22.5.0.
+` + `Underlying error: ${msg}`);
+  }
+}
+var _Ctor = null;
+var init_database_loader = () => {};
+
 // src/db/project-db.ts
 import { existsSync as existsSync5, mkdirSync as mkdirSync4 } from "fs";
-import { createRequire } from "module";
 import { join as join8, resolve as resolve6 } from "path";
-function loadDatabaseCtor() {
-  if (_DatabaseCtor)
-    return _DatabaseCtor;
-  const req = createRequire(import.meta.url);
-  _DatabaseCtor = req("bun:sqlite").Database;
-  return _DatabaseCtor;
-}
 function runProjectMigrations(db) {
   db.run(`CREATE TABLE IF NOT EXISTS schema_migrations (
 		version INTEGER PRIMARY KEY,
@@ -20175,8 +20232,9 @@ function getProjectDb(directory) {
   _projectDbs.set(key, db);
   return db;
 }
-var _DatabaseCtor = null, MIGRATIONS, _projectDbs;
+var MIGRATIONS, _projectDbs;
 var init_project_db = __esm(() => {
+  init_database_loader();
   MIGRATIONS = [
     {
       version: 1,
