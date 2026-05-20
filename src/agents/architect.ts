@@ -425,7 +425,10 @@ Subagents run in isolated contexts. Any project-specific skill constraints loade
 
 At session start, before your first delegation:
 1. Prefer skills already loaded into your context via \`<skill-context>\` blocks; reuse those immediately.
-2. When you need to inspect on-disk skills, use the \`search\` tool with \`include\` patterns like \`.opencode/skills/*/SKILL.md,.claude/skills/*/SKILL.md\` and frontmatter queries such as \`^name:\` / \`^description:\` so you only read the YAML lines you need.
+2. When you need to inspect available skills and commands, read the pre-built catalogs:
+   - Skills (194 entries): \`D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\skill-catalog.json\` — keys are skill names, each has a \`description\` field. Individual skill content lives at \`D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\{skill-name}\\SKILL.md\`.
+   - Commands (84 entries): \`D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\command-catalog.json\` — same structure. Command source files live under \`D:\\AI\\GlobalRepo\\commands\\opencode\\{subdir}\\{command-name}.md\`.
+   - Do NOT search \`.opencode/skills/\` or \`.claude/skills/\` — those paths are not used for OpenCode skills.
 3. Write a brief skill index to \`.swarm/context.md\` under \`## Available Skills\`:
    - writing-tests: Guidelines for writing tests (used: 12, compliance: 95%) → test_engineer, coder
    - engineering-conventions: Engineering invariants (used: 8, compliance: 100%) → coder, reviewer, test_engineer
@@ -435,7 +438,7 @@ At session start, before your first delegation:
 
    If skill-usage.jsonl does not exist, proceed with equal weighting — no enrichment needed.
 
-4. When discovery is ambiguous, prefer the canonical repo-relative skill file path in the delegation and let the receiving agent load it directly.
+4. When discovery is ambiguous, prefer the absolute \`file:\` path from the catalog (\`D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\{name}\\SKILL.md\`) and let the receiving agent load it directly.
 
 ### Step 2 — Route skills to agents
 
@@ -458,7 +461,7 @@ When uncertain: pass the skill. Subagents ignore irrelevant content. A missing a
 Add a \`SKILLS:\` field to every delegation that goes to an implementation or review agent (coder, reviewer, test_engineer, sme, docs, designer). Use one of:
 
 - \`SKILLS: none\` — only when no project-specific skill applies to that delegation
-- \`SKILLS: file:.claude/skills/writing-tests/SKILL.md\` — preferred for skills that exist on disk; use repo-relative \`file:\` references, comma-separated when multiple skills apply
+- \`SKILLS: file:D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\writing-tests\\SKILL.md\` — preferred for skills that exist on disk; use absolute \`file:\` paths from the catalog, comma-separated when multiple skills apply
 - Inline block fallback:
   SKILLS:
   --- [skill-name] ---
@@ -466,17 +469,17 @@ Add a \`SKILLS:\` field to every delegation that goes to an implementation or re
   --- [skill-name-2] ---
   [full SKILL.md body content pasted here]
 
-Default to repo-relative \`file:\` references for coder, reviewer, test_engineer, and sme. Use inline skill bodies only when the skill exists only in live context (no stable repo file path) or a prior agent explicitly reported \`SKILL_LOAD_FAILED\`.
+Default to absolute \`file:\` paths from the catalog for coder, reviewer, test_engineer, and sme. Use inline skill bodies only when the skill exists only in live context (no catalog entry) or a prior agent explicitly reported \`SKILL_LOAD_FAILED\`.
 
 **SKILL_LOAD_FAILED recovery:** If a subagent reports SKILL_LOAD_FAILED for a \`file:\` reference, do NOT retry with the same reference. Instead, re-delegate with either: (a) the full skill body pasted inline, or (b) \`SKILLS: none\` if no applicable skill content is available. Never re-use a file: reference that has already failed.
 
-**Mandatory for coding tasks:** Always provide \`writing-tests\` to test_engineer and \`engineering-conventions\` to coder + reviewer when those skills are present in the project. Prefer \`file:\` references when the files exist.
+**Mandatory for coding tasks:** Always provide \`writing-tests\` to test_engineer and \`engineering-conventions\` to coder + reviewer when those skills are present in the catalog. Use absolute \`file:\` paths: \`file:D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\writing-tests\\SKILL.md\` and \`file:D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\engineering-conventions\\SKILL.md\`.
 
 ### Step 4 — Forward skills to reviewer
 
 When delegating to the reviewer after a coder task, include a \`SKILLS_USED_BY_CODER: [comma-separated list of skill paths from the coder delegation]\` field. The reviewer must receive the same skill context the coder received so it can verify skill compliance.
 
-Example: If the coder received \`SKILLS: file:.claude/skills/writing-tests/SKILL.md\`, the reviewer delegation must include \`SKILLS_USED_BY_CODER: file:.claude/skills/writing-tests/SKILL.md\` in addition to the reviewer's own \`SKILLS:\` field.
+Example: If the coder received \`SKILLS: file:D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\writing-tests\\SKILL.md\`, the reviewer delegation must include \`SKILLS_USED_BY_CODER: file:D:\\AI\\GlobalRepo\\skills\\opencode\\openskills\\writing-tests\\SKILL.md\` in addition to the reviewer's own \`SKILLS:\` field.
 
 ## SWARM KNOWLEDGE DIRECTIVES (v2 acknowledgment contract)
 
