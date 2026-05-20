@@ -52,7 +52,7 @@ var package_default;
 var init_package = __esm(() => {
   package_default = {
     name: "opencode-swarm",
-    version: "7.24.1",
+    version: "7.26.0",
     description: "Architect-centric agentic swarm plugin for OpenCode - hub-and-spoke orchestration with SME consultation, code generation, and QA review",
     main: "dist/index.js",
     types: "dist/index.d.ts",
@@ -90,7 +90,7 @@ var init_package = __esm(() => {
     ],
     scripts: {
       clean: `bun -e "require('fs').rmSync('dist',{recursive:true,force:true})"`,
-      build: "bun run clean && bun run scripts/copy-grammars.ts && bun build src/index.ts --outdir dist --target node --format esm && bun build src/cli/index.ts --outdir dist/cli --target bun --format esm && bun run scripts/copy-grammars.ts --to-dist && tsc --emitDeclarationOnly",
+      build: "bun run clean && bun run scripts/copy-grammars.ts && bun build src/index.ts --outdir dist --target node --format esm --external bash-parser && bun build src/cli/index.ts --outdir dist/cli --target bun --format esm --external bash-parser && bun run scripts/copy-grammars.ts --to-dist && tsc --emitDeclarationOnly",
       typecheck: "tsc --noEmit",
       test: "bun test",
       lint: "biome lint .",
@@ -104,6 +104,7 @@ var init_package = __esm(() => {
       "@opencode-ai/plugin": "^1.1.53",
       "@opencode-ai/sdk": "^1.1.53",
       "@vscode/tree-sitter-wasm": "^0.3.0",
+      "bash-parser": "^0.5.0",
       "p-limit": "^7.3.0",
       picomatch: "^4.0.4",
       "proper-lockfile": "^4.1.2",
@@ -20855,6 +20856,73 @@ var init_scope_persistence = __esm(() => {
   ]);
 });
 
+// src/hooks/shell-write-detect.ts
+import parse5 from "bash-parser";
+var REDIRECT_WRITE_TOKENS, REDIRECT_HERE_TOKENS, REDIRECT_ALL_WRITE_TOKENS, BUILTIN_WRITE_COMMANDS, INPLACE_EDIT_COMMANDS, INTERPRETER_EVAL_COMMANDS, NETWORK_DOWNLOAD_COMMANDS, ARCHIVE_EXTRACT_COMMANDS, PS_WRITE_CMDLETS, PS_WRITE_ALIASES, CMD_WRITE_BUILTINS;
+var init_shell_write_detect = __esm(() => {
+  REDIRECT_WRITE_TOKENS = new Set([
+    "GREAT",
+    "DGREAT",
+    "CLOBBER",
+    "LESSGREAT"
+  ]);
+  REDIRECT_HERE_TOKENS = new Set(["DLESS", "DLESSDASH"]);
+  REDIRECT_ALL_WRITE_TOKENS = new Set([
+    ...REDIRECT_WRITE_TOKENS,
+    ...REDIRECT_HERE_TOKENS
+  ]);
+  BUILTIN_WRITE_COMMANDS = new Set([
+    "cp",
+    "mv",
+    "install",
+    "ln",
+    "truncate"
+  ]);
+  INPLACE_EDIT_COMMANDS = new Set(["sed", "perl", "awk"]);
+  INTERPRETER_EVAL_COMMANDS = new Set([
+    "python",
+    "python3",
+    "python2",
+    "node",
+    "bun",
+    "ruby",
+    "perl",
+    "php"
+  ]);
+  NETWORK_DOWNLOAD_COMMANDS = new Set(["curl", "wget", "scp"]);
+  ARCHIVE_EXTRACT_COMMANDS = new Set([
+    "tar",
+    "unzip",
+    "gunzip",
+    "gzip",
+    "bzip2",
+    "xz",
+    "7z",
+    "rar"
+  ]);
+  PS_WRITE_CMDLETS = new Set([
+    "Out-File",
+    "Set-Content",
+    "Add-Content",
+    "Clear-Content",
+    "Copy-Item",
+    "Move-Item",
+    "Remove-Item",
+    "Invoke-WebRequest",
+    "Start-Process"
+  ]);
+  PS_WRITE_ALIASES = new Set(["echo", "write"]);
+  CMD_WRITE_BUILTINS = new Set([
+    "copy",
+    "move",
+    "type",
+    "del",
+    "rd",
+    "md",
+    "ren"
+  ]);
+});
+
 // src/hooks/conflict-resolution.ts
 var init_conflict_resolution = __esm(() => {
   init_state();
@@ -20929,6 +20997,7 @@ var init_guardrails = __esm(() => {
   init_state();
   init_telemetry();
   init_utils();
+  init_shell_write_detect();
   init_bun_compat();
   init_logger();
   init_conflict_resolution();
@@ -22331,7 +22400,7 @@ var _parse2 = (_Err) => (schema, value, _ctx, _params) => {
     throw e;
   }
   return result.value;
-}, parse5, _parseAsync2 = (_Err) => async (schema, value, _ctx, params) => {
+}, parse6, _parseAsync2 = (_Err) => async (schema, value, _ctx, params) => {
   const ctx = _ctx ? Object.assign(_ctx, { async: true }) : { async: true };
   let result = schema._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise)
@@ -22386,7 +22455,7 @@ var init_parse3 = __esm(() => {
   init_core3();
   init_errors4();
   init_util2();
-  parse5 = /* @__PURE__ */ _parse2($ZodRealError2);
+  parse6 = /* @__PURE__ */ _parse2($ZodRealError2);
   parseAsync3 = /* @__PURE__ */ _parseAsync2($ZodRealError2);
   safeParse3 = /* @__PURE__ */ _safeParse2($ZodRealError2);
   safeParseAsync3 = /* @__PURE__ */ _safeParseAsync2($ZodRealError2);
@@ -24876,10 +24945,10 @@ var init_schemas3 = __esm(() => {
         throw new Error("implement() must be called with a function");
       }
       return function(...args) {
-        const parsedArgs = inst._def.input ? parse5(inst._def.input, args) : args;
+        const parsedArgs = inst._def.input ? parse6(inst._def.input, args) : args;
         const result = Reflect.apply(func, this, parsedArgs);
         if (inst._def.output) {
-          return parse5(inst._def.output, result);
+          return parse6(inst._def.output, result);
         }
         return result;
       };
@@ -32455,7 +32524,7 @@ __export(exports_core4, {
   regexes: () => exports_regexes2,
   prettifyError: () => prettifyError2,
   parseAsync: () => parseAsync3,
-  parse: () => parse5,
+  parse: () => parse6,
   locales: () => exports_locales2,
   isValidJWT: () => isValidJWT2,
   isValidBase64URL: () => isValidBase64URL2,
@@ -32808,11 +32877,11 @@ var init_errors5 = __esm(() => {
 });
 
 // node_modules/@opencode-ai/plugin/node_modules/zod/v4/classic/parse.js
-var parse7, parseAsync4, safeParse4, safeParseAsync4, encode4, decode4, encodeAsync4, decodeAsync4, safeEncode4, safeDecode4, safeEncodeAsync4, safeDecodeAsync4;
+var parse8, parseAsync4, safeParse4, safeParseAsync4, encode4, decode4, encodeAsync4, decodeAsync4, safeEncode4, safeDecode4, safeEncodeAsync4, safeDecodeAsync4;
 var init_parse4 = __esm(() => {
   init_core4();
   init_errors5();
-  parse7 = /* @__PURE__ */ _parse2(ZodRealError2);
+  parse8 = /* @__PURE__ */ _parse2(ZodRealError2);
   parseAsync4 = /* @__PURE__ */ _parseAsync2(ZodRealError2);
   safeParse4 = /* @__PURE__ */ _safeParse2(ZodRealError2);
   safeParseAsync4 = /* @__PURE__ */ _safeParseAsync2(ZodRealError2);
@@ -33284,7 +33353,7 @@ var init_schemas4 = __esm(() => {
       reg.add(inst, meta3);
       return inst;
     };
-    inst.parse = (data, params) => parse7(inst, data, params, { callee: inst.parse });
+    inst.parse = (data, params) => parse8(inst, data, params, { callee: inst.parse });
     inst.safeParse = (data, params) => safeParse4(inst, data, params);
     inst.parseAsync = async (data, params) => parseAsync4(inst, data, params, { callee: inst.parseAsync });
     inst.safeParseAsync = async (data, params) => safeParseAsync4(inst, data, params);
@@ -33924,7 +33993,7 @@ __export(exports_external2, {
   pipe: () => pipe2,
   partialRecord: () => partialRecord2,
   parseAsync: () => parseAsync4,
-  parse: () => parse7,
+  parse: () => parse8,
   overwrite: () => _overwrite2,
   optional: () => optional2,
   object: () => object2,
