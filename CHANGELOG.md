@@ -1,5 +1,26 @@
 # Changelog
 
+## [7.25.2](https://github.com/zaxbysauce/opencode-swarm/compare/v7.25.1...v7.25.2) (2026-05-20)
+
+
+### Bug Fixes
+
+* **containment:** prevent .swarm creation in subdirectories ([#933](https://github.com/zaxbysauce/opencode-swarm/issues/933)) ([da0a186](https://github.com/zaxbysauce/opencode-swarm/commit/da0a186f77ee288d0e7d486ab3a0017e1ad37095))
+
+## [7.25.1](https://github.com/zaxbysauce/opencode-swarm/compare/v7.25.0...v7.25.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* **gate:** reviewer gate permanently blocks docs tasks; misleading error causes delegation loop ([#931](https://github.com/zaxbysauce/opencode-swarm/issues/931)) ([aca5351](https://github.com/zaxbysauce/opencode-swarm/commit/aca5351315a9be5e3527865f5f3c3bdb122d7e35))
+
+## [7.25.0](https://github.com/zaxbysauce/opencode-swarm/compare/v7.24.1...v7.25.0) (2026-05-19)
+
+
+### Features
+
+* **test-runner:** record per-test history with aggregate fallback ([#925](https://github.com/zaxbysauce/opencode-swarm/issues/925)) ([41af3a1](https://github.com/zaxbysauce/opencode-swarm/commit/41af3a1937e82798e807e02a8bd826f6fd9b13ac))
+
 ## [7.24.1](https://github.com/zaxbysauce/opencode-swarm/compare/v7.24.0...v7.24.1) (2026-05-19)
 
 
