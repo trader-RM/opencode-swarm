@@ -434,6 +434,15 @@
       "max_consecutive": 5,
       "max_total": 50,
       "on_limit": "pause"
+    },
+    "oversight": {
+      "every_tool_calls": 0,
+      "every_architect_turns": 0,
+      "every_minutes": 0,
+      "on_plan_change": false,
+      "on_phase_boundary": false,
+      "on_high_risk_action": false,
+      "on_subagent_return_warning": false
     }
   }
 }
