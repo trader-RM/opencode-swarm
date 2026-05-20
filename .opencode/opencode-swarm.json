@@ -31,7 +31,7 @@
   "version_check": true,
 
   "pipeline": {
-    "parallel_precheck": true
+    "parallel_precheck": false
   },
 
   "hooks": {
@@ -108,9 +108,9 @@
   },
 
   "watchdog": {
-    "scope_guard": true,
+    "scope_guard": false,
     "skip_in_turbo": false,
-    "delegation_ledger": true
+    "delegation_ledger": false
   },
 
   "self_review": {
